@@ -1,11 +1,13 @@
 <?php
 
+use App\Mail\OtpCodeMail;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Voyage;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
     // Seed demo voyages if none
@@ -248,6 +250,8 @@ test('seeded admin accounts can authenticate with provided passwords and access 
 });
 
 test('otp login redirects to reservation portal with selected voyage', function () {
+    Mail::fake();
+
     $this->get('/login/otp?redirect=/portal&voyageId=VY-TEST-01')->assertOk();
 
     // 1. Send OTP
@@ -255,6 +259,10 @@ test('otp login redirects to reservation portal with selected voyage', function 
         'email' => 'sofor@lojistik.com',
     ]);
     $sendResponse->assertRedirect();
+
+    Mail::assertSent(OtpCodeMail::class, function ($mail) {
+        return $mail->hasTo('sofor@lojistik.com') && ! empty($mail->otpCode);
+    });
 
     $user = User::where('email', 'sofor@lojistik.com')->first();
     expect($user)->not->toBeNull()

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\OtpCodeMail;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,22 +79,19 @@ class OtpLoginController extends Controller
             'otp_expires_at' => now()->addMinutes(10),
         ])->save();
 
-        Log::info("Saha Kullanıcısı OTP Gönderildi: [{$email}] Kod: [{$code}]");
+        Log::info("OTP Gönderildi: [{$email}] Kod: [{$code}]");
 
-        // E-posta gönderimi simülasyonu / hazırlığı
+        // Gerçek SMTP üzerinden e-posta gönderimi
         try {
-            // İleride SMTP ayarı yapıldığında direkt gider:
-            // Mail::raw("Cenk Ro-Ro Saha Giriş Doğrulama Kodunuz: {$code}\nBu kod 10 dakika geçerlidir.", function ($m) use ($email) {
-            //     $m->to($email)->subject('Cenk Ro-Ro Saha Giriş Kodu');
-            // });
+            Mail::to($email)->send(new OtpCodeMail($code, $user->name));
         } catch (\Throwable $e) {
-            Log::warning('OTP Mail gönderim hatası: '.$e->getMessage());
+            Log::error('OTP Mail gönderim hatası: '.$e->getMessage());
         }
 
         return back()
             ->with('otp_sent_to', $email)
             ->with('otp_code_demo', $code)
-            ->with('success', "Doğrulama kodunuz {$email} adresine gönderildi! (Test Kodu: {$code})");
+            ->with('success', "Doğrulama kodunuz {$email} adresine gönderildi!");
     }
 
     /**

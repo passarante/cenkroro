@@ -22,7 +22,7 @@ import AppLogo from './app-logo';
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Karşılama Sayfası',
+        title: 'Cenk Ro-Ro Anasayfa',
         url: '/',
         icon: Globe,
     },

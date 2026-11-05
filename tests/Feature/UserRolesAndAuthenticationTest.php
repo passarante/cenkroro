@@ -3,6 +3,8 @@
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Voyage;
+use Database\Seeders\DatabaseSeeder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 beforeEach(function () {
@@ -222,4 +224,48 @@ test('field user can submit reservation with their own typed company name', func
     // Portalda geçmiş işlem olarak listelenmeli
     $portalResponse = $this->actingAs($fieldUser)->get('/portal?tab=history');
     $portalResponse->assertOk();
+});
+
+test('seeded admin accounts can authenticate with provided passwords and access dashboard', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $admins = [
+        ['email' => 'guneydirim@gmail.com', 'password' => '75787578'],
+        ['email' => 'cigdem@cenkroro.com', 'password' => '1234578*'],
+        ['email' => 'hakan@3sgrup.com', 'password' => '75787578'],
+    ];
+
+    foreach ($admins as $adminData) {
+        $response = $this->post('/login', [
+            'email' => $adminData['email'],
+            'password' => $adminData['password'],
+        ]);
+
+        $response->assertRedirect('/dashboard');
+        $this->assertAuthenticated();
+        Auth::logout();
+    }
+});
+
+test('otp login redirects to reservation portal with selected voyage', function () {
+    $this->get('/login/otp?redirect=/portal&voyageId=VY-TEST-01')->assertOk();
+
+    // 1. Send OTP
+    $sendResponse = $this->post('/login/otp/send', [
+        'email' => 'sofor@lojistik.com',
+    ]);
+    $sendResponse->assertRedirect();
+
+    $user = User::where('email', 'sofor@lojistik.com')->first();
+    expect($user)->not->toBeNull()
+        ->and($user->otp_code)->not->toBeNull();
+
+    // 2. Verify OTP and expect redirect to portal with voyageId
+    $verifyResponse = $this->post('/login/otp/verify', [
+        'email' => 'sofor@lojistik.com',
+        'otp_code' => $user->otp_code,
+    ]);
+
+    $verifyResponse->assertRedirect('/portal?tab=book&voyageId=VY-TEST-01');
+    $this->assertAuthenticatedAs($user);
 });

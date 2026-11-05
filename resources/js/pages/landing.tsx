@@ -1,5 +1,5 @@
-import { Booking, Category, Forwarder, Tariff, Vessel, Voyage } from '@/types';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Booking, Category, Forwarder, SharedData, Tariff, Vessel, Voyage } from '@/types';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
     Anchor,
@@ -67,6 +67,19 @@ export default function Landing({
     searchResult = null,
     initialModal = null,
 }: LandingProps) {
+    const { auth } = usePage<SharedData>().props;
+    const user = auth?.user;
+
+    const handleReservationClick = (voyageId?: string) => {
+        if (user) {
+            const url = voyageId ? `/portal?tab=book&voyageId=${voyageId}` : '/portal?tab=book';
+            router.visit(url);
+        } else {
+            const url = voyageId ? `/login/otp?redirect=/portal&voyageId=${voyageId}` : '/login/otp?redirect=/portal';
+            router.visit(url);
+        }
+    };
+
     // Modal states
     const [reservationOpen, setReservationOpen] = useState(false);
     const [subStep2Open, setSubStep2Open] = useState(false);
@@ -192,9 +205,8 @@ export default function Landing({
     };
 
     const handleSelectVoyageAndBook = (voyageId: string) => {
-        bookingForm.setData('voyageId', voyageId);
         setScheduleOpen(false);
-        setReservationOpen(true);
+        handleReservationClick(voyageId);
     };
 
     return (
@@ -235,7 +247,7 @@ export default function Landing({
                                 <Ship className="h-4 w-4 text-sky-600" /> Düzenli Ro-Ro Seferleri
                             </button>
                             <button
-                                onClick={() => setReservationOpen(true)}
+                                onClick={() => handleReservationClick()}
                                 className="flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-700 transition-colors"
                             >
                                 <FileText className="h-4 w-4 text-emerald-600" /> Online Rezervasyon & Bilet
@@ -287,7 +299,7 @@ export default function Landing({
                     </div>
 
                     <Link
-                        href="/dashboard"
+                        href={user ? (user.role === 'field' ? '/portal' : '/dashboard') : '/login'}
                         className="flex items-center gap-2 rounded-lg border border-sky-500/40 bg-[#0f172a] px-4 py-2 text-xs font-bold text-sky-400 hover:bg-slate-800 hover:text-white transition-all shadow-sm"
                     >
                         <Shield className="h-4 w-4 text-sky-400" />
@@ -306,7 +318,7 @@ export default function Landing({
                 {/* Left Floating Circular Badges */}
                 <div className="hidden xl:flex absolute left-10 top-36 flex-col gap-5 z-20">
                     <button
-                        onClick={() => setReservationOpen(true)}
+                        onClick={() => handleReservationClick()}
                         className="group flex flex-col items-center justify-center w-24 h-24 rounded-full bg-white text-slate-800 shadow-xl border-2 border-white/80 hover:scale-108 hover:shadow-2xl transition-all cursor-pointer p-2"
                         title="Online Web Rezervasyon"
                     >
@@ -356,7 +368,7 @@ export default function Landing({
                     <div className="flex flex-col gap-3 w-full max-w-md">
                         {/* Top: REZERVASYON YAP */}
                         <button
-                            onClick={() => setReservationOpen(true)}
+                            onClick={() => handleReservationClick()}
                             className="w-full rounded-md bg-white text-[#05264b] font-black tracking-wider uppercase py-4 px-6 text-base shadow-2xl hover:bg-[#05264b] hover:text-white hover:border-[#05264b] transition-all transform hover:-translate-y-0.5"
                         >
                             REZERVASYON YAP

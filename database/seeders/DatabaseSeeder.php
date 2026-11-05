@@ -13,17 +13,42 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Yönetici Kullanıcı (Admin)
-        User::firstOrCreate(
-            ['email' => 'admin@cenkroro.com'],
+        // 1. Yönetici Kullanıcılar (Admin)
+        $adminUsers = [
             [
+                'email' => 'guneydirim@gmail.com',
+                'name' => 'Guney Dirim',
+                'password' => '75787578',
+            ],
+            [
+                'email' => 'cigdem@cenkroro.com',
+                'name' => 'Çiğdem Kurnaz',
+                'password' => '1234578*',
+            ],
+            [
+                'email' => 'hakan@3sgrup.com',
+                'name' => 'Hakan Sarıçayır',
+                'password' => '75787578',
+            ],
+            [
+                'email' => 'admin@cenkroro.com',
                 'name' => 'Sistem Yöneticisi',
                 'password' => 'password',
-                'role' => 'admin',
-                'status' => 'active',
-                'permissions_json' => array_keys(User::MODULES),
-            ]
-        );
+            ],
+        ];
+
+        foreach ($adminUsers as $admin) {
+            User::updateOrCreate(
+                ['email' => $admin['email']],
+                [
+                    'name' => $admin['name'],
+                    'password' => $admin['password'],
+                    'role' => 'admin',
+                    'status' => 'active',
+                    'permissions_json' => array_keys(User::MODULES),
+                ]
+            );
+        }
 
         // 2. Operasyon Kullanıcısı (Operation)
         User::firstOrCreate(

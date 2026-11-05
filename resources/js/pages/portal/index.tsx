@@ -45,6 +45,7 @@ interface MobilePortalProps {
     pnrSearch: string;
     inquiryResult?: Booking | null;
     myBookings?: Booking[];
+    selectedVoyageId?: string;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -59,6 +60,7 @@ export default function MobilePortalIndex({
     pnrSearch = '',
     inquiryResult = null,
     myBookings = [],
+    selectedVoyageId = '',
 }: MobilePortalProps) {
     const { auth } = usePage<SharedData>().props;
     const user = auth?.user;
@@ -75,7 +77,7 @@ export default function MobilePortalIndex({
     const [newShipperName, setNewShipperName] = useState<string>('');
 
     const bookingForm = useForm({
-        voyageId: voyages[0]?.id || '',
+        voyageId: selectedVoyageId || voyages[0]?.id || '',
         shipper: isFieldUser ? (user?.company_name || '') : (forwarders[0]?.name || ''),
         contactName: user?.name?.split(' ')[0] || '',
         contactSurname: user?.name ? user.name.split(' ').slice(1).join(' ') : '',

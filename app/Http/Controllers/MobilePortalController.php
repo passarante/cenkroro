@@ -47,6 +47,8 @@ class MobilePortalController extends Controller
             })->orderBy('created_at', 'desc')->get();
         }
 
+        $selectedVoyageId = $request->query('voyageId', $request->query('voyage', ''));
+
         return Inertia::render('portal/index', compact(
             'voyages',
             'activeVoyage',
@@ -56,7 +58,8 @@ class MobilePortalController extends Controller
             'activeTab',
             'pnrSearch',
             'inquiryResult',
-            'myBookings'
+            'myBookings',
+            'selectedVoyageId'
         ));
     }
 

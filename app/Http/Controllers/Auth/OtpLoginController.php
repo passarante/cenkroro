@@ -20,8 +20,20 @@ class OtpLoginController extends Controller
      */
     public function show(Request $request): Response
     {
+        $redirectUrl = $request->query('redirect', '/portal');
+        $voyageId = $request->query('voyageId');
+
+        if ($redirectUrl) {
+            $request->session()->put('otp_redirect', $redirectUrl);
+        }
+        if ($voyageId) {
+            $request->session()->put('otp_voyage_id', $voyageId);
+        }
+
         return Inertia::render('auth/login', [
             'initialTab' => 'otp',
+            'redirectUrl' => $redirectUrl,
+            'voyageId' => $voyageId,
             'otpSentTo' => $request->session()->get('otp_sent_to'),
             'otpCodeDemo' => $request->session()->get('otp_code_demo'),
             'canResetPassword' => false,
@@ -124,9 +136,16 @@ class OtpLoginController extends Controller
         Auth::login($user, remember: true);
         $request->session()->regenerate();
 
-        if ($user->isField()) {
-            return redirect()->intended(route('portal.index', absolute: false))
-                ->with('success', "Hoş geldiniz, {$user->name}! Saha portali kullanımınıza hazırdır.");
+        $redirectUrl = $request->session()->pull('otp_redirect', route('portal.index', absolute: false));
+        $voyageId = $request->session()->pull('otp_voyage_id');
+
+        if ($voyageId) {
+            $redirectUrl = route('portal.index', ['tab' => 'book', 'voyageId' => $voyageId], absolute: false);
+        }
+
+        if ($user->isField() || $redirectUrl !== route('dashboard', absolute: false)) {
+            return redirect()->intended($redirectUrl)
+                ->with('success', "Hoş geldiniz, {$user->name}!");
         }
 
         return redirect()->intended(route('dashboard', absolute: false))

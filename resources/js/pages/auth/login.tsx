@@ -184,9 +184,13 @@ export default function Login({
                     </div>
 
                     <div className="rounded-md bg-blue-50/50 p-3 text-[11px] text-blue-800 dark:bg-blue-950/20 dark:text-blue-300 border border-blue-100 dark:border-blue-900/40">
-                        <p className="font-semibold mb-0.5">Demo Hesapları:</p>
-                        <p>Yönetici: <code>admin@cenkroro.com</code> / <code>password</code></p>
-                        <p>Operasyon: <code>operasyon@cenkroro.com</code> / <code>password</code></p>
+                        <p className="font-semibold mb-1">Kayıtlı Admin & Operasyon Hesapları:</p>
+                        <div className="space-y-0.5">
+                            <p>Guney Dirim: <code>guneydirim@gmail.com</code> (Şifre: <code>75787578</code>)</p>
+                            <p>Çiğdem Kurnaz: <code>cigdem@cenkroro.com</code> (Şifre: <code>1234578*</code>)</p>
+                            <p>Hakan Sarıçayır: <code>hakan@3sgrup.com</code> (Şifre: <code>75787578</code>)</p>
+                            <p className="pt-1 text-slate-500">Operasyon: <code>operasyon@cenkroro.com</code> (Şifre: <code>password</code>)</p>
+                        </div>
                     </div>
                 </form>
             )}

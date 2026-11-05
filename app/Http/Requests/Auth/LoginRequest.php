@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -41,6 +42,20 @@ class LoginRequest extends FormRequest
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+
+        $user = User::where('email', $this->input('email'))->first();
+
+        if ($user && ! $user->isActive()) {
+            throw ValidationException::withMessages([
+                'email' => 'Hesabınız pasife alınmıştır. Lütfen sistem yöneticiniz ile iletişime geçiniz.',
+            ]);
+        }
+
+        if ($user && $user->isField() && empty($user->password)) {
+            throw ValidationException::withMessages([
+                'email' => 'Saha kullanıcıları e-posta adreslerine gönderilen tek kullanımlık kod (OTP) ile giriş yapmalıdır.',
+            ]);
+        }
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());

@@ -35,7 +35,7 @@ return new class extends Migration
                 'contactPhone',
                 'vehicleKind',
                 'trailerType',
-                'hasElectricity'
+                'hasElectricity',
             ]);
         });
     }

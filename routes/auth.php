@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\OtpLoginController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
@@ -20,6 +21,14 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+
+    // Saha Kullanıcısı E-posta OTP Girişi
+    Route::get('login/otp', [OtpLoginController::class, 'show'])
+        ->name('otp.login');
+    Route::post('login/otp/send', [OtpLoginController::class, 'sendOtp'])
+        ->name('otp.send');
+    Route::post('login/otp/verify', [OtpLoginController::class, 'verifyOtp'])
+        ->name('otp.verify');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');

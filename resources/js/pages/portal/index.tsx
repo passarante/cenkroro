@@ -32,15 +32,19 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+import { SharedData } from '@/types';
+import { usePage } from '@inertiajs/react';
+
 interface MobilePortalProps {
     voyages: Voyage[];
     activeVoyage?: Voyage | null;
     forwarders: Forwarder[];
     tariffs: Tariff[];
     categories: Category[];
-    activeTab: 'book' | 'pnr' | 'schedule';
+    activeTab: 'book' | 'pnr' | 'schedule' | 'history';
     pnrSearch: string;
     inquiryResult?: Booking | null;
+    myBookings?: Booking[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -54,26 +58,31 @@ export default function MobilePortalIndex({
     activeTab = 'book',
     pnrSearch = '',
     inquiryResult = null,
+    myBookings = [],
 }: MobilePortalProps) {
-    const [currentTab, setCurrentTab] = useState<'book' | 'pnr' | 'schedule'>(activeTab);
+    const { auth } = usePage<SharedData>().props;
+    const user = auth?.user;
+    const isFieldUser = user?.role === 'field';
+
+    const [currentTab, setCurrentTab] = useState<'book' | 'pnr' | 'schedule' | 'history'>(activeTab);
     const [pnrQuery, setPnrQuery] = useState(pnrSearch);
     const [step2Open, setStep2Open] = useState(false);
 
     // Form for booking submission
     const [selectedShipperOption, setSelectedShipperOption] = useState<string>(
-        forwarders[0]?.name || ''
+        isFieldUser ? (user?.company_name || '') : (forwarders[0]?.name || '')
     );
     const [newShipperName, setNewShipperName] = useState<string>('');
 
     const bookingForm = useForm({
         voyageId: voyages[0]?.id || '',
-        shipper: forwarders[0]?.name || '',
-        contactName: '',
-        contactSurname: '',
-        contactMail: '',
-        contactPhone: '',
-        driverName: '',
-        driverPhone: '',
+        shipper: isFieldUser ? (user?.company_name || '') : (forwarders[0]?.name || ''),
+        contactName: user?.name?.split(' ')[0] || '',
+        contactSurname: user?.name ? user.name.split(' ').slice(1).join(' ') : '',
+        contactMail: user?.email || '',
+        contactPhone: user?.phone || '',
+        driverName: isFieldUser ? (user?.name || '') : '',
+        driverPhone: isFieldUser ? (user?.phone || '') : '',
         truckPlate: '',
         trailerPlate: '',
         weightTon: 34.0,
@@ -182,6 +191,21 @@ export default function MobilePortalIndex({
                         >
                             <Calendar className="mr-1.5 h-4 w-4" /> Sefer Takvimi
                         </Button>
+                        {user && (
+                            <Button
+                                variant={currentTab === 'history' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setCurrentTab('history')}
+                                className="font-medium"
+                            >
+                                <Truck className="mr-1.5 h-4 w-4" /> Geçmiş İşlemlerim
+                                {myBookings.length > 0 && (
+                                    <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] bg-primary/20 text-foreground font-bold">
+                                        {myBookings.length}
+                                    </span>
+                                )}
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -215,50 +239,72 @@ export default function MobilePortalIndex({
                                     </select>
                                 </div>
 
-                                {/* Firma Seçimi (Tek Sütun) */}
-                                <div className="space-y-2">
-                                    <Label className="font-semibold text-foreground">Firma (Acente/Lojistik) *</Label>
-                                    <select
-                                        value={selectedShipperOption}
-                                        onChange={(e) => handleShipperChange(e.target.value)}
-                                        className="w-full rounded-md border border-input bg-background/90 px-3 py-2 text-sm shadow-xs focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer"
-                                        required
-                                    >
-                                        <option value="">-- Firma Seçiniz --</option>
-                                        {forwarders.map((f) => (
-                                            <option key={f.id} value={f.name}>
-                                                {f.name}
-                                            </option>
-                                        ))}
-                                        <option value="__NEW__" className="font-bold text-sky-500">
-                                            ➕ Yeni Firma Ekle (Listede Yoksa)
-                                        </option>
-                                    </select>
-                                </div>
-
-                                {/* Yeni Firma Giriş Alanı */}
-                                {selectedShipperOption === '__NEW__' && (
-                                    <div className="space-y-2 animate-in fade-in-50 duration-200 bg-sky-500/5 p-4 rounded-lg border border-sky-500/20">
+                                {/* Firma Seçimi / Metin Girişi */}
+                                {isFieldUser ? (
+                                    <div className="space-y-2">
                                         <div className="flex items-center justify-between">
-                                            <Label className="font-semibold text-sky-600 dark:text-sky-400 flex items-center gap-1.5 text-xs">
-                                                <span className="inline-block w-2 h-2 rounded-full bg-sky-500"></span>
-                                                Yeni Firma Ünvanı / Cari Adı *
-                                            </Label>
-                                            <span className="text-[11px] text-sky-600 dark:text-sky-400 font-semibold bg-sky-500/10 px-2 py-0.5 rounded">
-                                                Yeni Cari Kaydı
+                                            <Label className="font-semibold text-foreground">Firma Ünvanı / Cari Adı *</Label>
+                                            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded">
+                                                Saha Kullanıcısı Doğrudan Giriş
                                             </span>
                                         </div>
                                         <Input
-                                            placeholder="Yeni firma / cari adını giriniz (Örn: ABC LOJİSTİK A.Ş.)"
-                                            value={newShipperName}
-                                            onChange={(e) => handleNewShipperNameChange(e.target.value)}
-                                            autoFocus
+                                            placeholder="Firma / Cari adınızı yazınız (Örn: Demir Uluslararası Taşımacılık)"
+                                            value={bookingForm.data.shipper}
+                                            onChange={(e) => bookingForm.setData('shipper', e.target.value)}
                                             required
                                         />
                                         <p className="text-[11px] text-muted-foreground">
-                                            Girdiğiniz firma rezervasyonunuza yeni cari firma olarak kaydedilecektir.
+                                            Saha kullanıcıları firma listesini görmeden kendi firma adlarını doğrudan girerek rezervasyon oluşturur.
                                         </p>
                                     </div>
+                                ) : (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label className="font-semibold text-foreground">Firma (Acente/Lojistik) *</Label>
+                                            <select
+                                                value={selectedShipperOption}
+                                                onChange={(e) => handleShipperChange(e.target.value)}
+                                                className="w-full rounded-md border border-input bg-background/90 px-3 py-2 text-sm shadow-xs focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer"
+                                                required
+                                            >
+                                                <option value="">-- Firma Seçiniz --</option>
+                                                {forwarders.map((f) => (
+                                                    <option key={f.id} value={f.name}>
+                                                        {f.name}
+                                                    </option>
+                                                ))}
+                                                <option value="__NEW__" className="font-bold text-sky-500">
+                                                    ➕ Yeni Firma Ekle (Listede Yoksa)
+                                                </option>
+                                            </select>
+                                        </div>
+
+                                        {/* Yeni Firma Giriş Alanı */}
+                                        {selectedShipperOption === '__NEW__' && (
+                                            <div className="space-y-2 animate-in fade-in-50 duration-200 bg-sky-500/5 p-4 rounded-lg border border-sky-500/20">
+                                                <div className="flex items-center justify-between">
+                                                    <Label className="font-semibold text-sky-600 dark:text-sky-400 flex items-center gap-1.5 text-xs">
+                                                        <span className="inline-block w-2 h-2 rounded-full bg-sky-500"></span>
+                                                        Yeni Firma Ünvanı / Cari Adı *
+                                                    </Label>
+                                                    <span className="text-[11px] text-sky-600 dark:text-sky-400 font-semibold bg-sky-500/10 px-2 py-0.5 rounded">
+                                                        Yeni Cari Kaydı
+                                                    </span>
+                                                </div>
+                                                <Input
+                                                    placeholder="Yeni firma / cari adını giriniz (Örn: ABC LOJİSTİK A.Ş.)"
+                                                    value={newShipperName}
+                                                    onChange={(e) => handleNewShipperNameChange(e.target.value)}
+                                                    autoFocus
+                                                    required
+                                                />
+                                                <p className="text-[11px] text-muted-foreground">
+                                                    Girdiğiniz firma rezervasyonunuza yeni cari firma olarak kaydedilecektir.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
 
                                 {/* Row 2: Yetkili Adı & Soyadı */}
@@ -542,6 +588,153 @@ export default function MobilePortalIndex({
                                     </div>
                                 ))}
                             </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* TAB 4: GEÇMİŞ İŞLEM KAYITLARI */}
+                {currentTab === 'history' && (
+                    <Card className="mx-auto w-full max-w-5xl border-border/80 bg-card/70 shadow-sm">
+                        <CardHeader className="border-b border-border/50 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+                                    <Truck className="h-5 w-5 text-primary" />
+                                    Geçmiş Rezervasyonlarım & Biniş Kayıtları
+                                </CardTitle>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Hesabınıza ({user?.email}) ait tescilli tüm geçmiş rezervasyonlar ve güncel durumları
+                                </p>
+                            </div>
+                            <Button
+                                size="sm"
+                                onClick={() => setCurrentTab('book')}
+                                className="text-xs font-semibold self-start sm:self-auto"
+                            >
+                                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                                Yeni Rezervasyon Yap
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            {myBookings.length === 0 ? (
+                                <div className="text-center py-12 border border-dashed rounded-lg bg-muted/20">
+                                    <Truck className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-40" />
+                                    <h3 className="text-base font-semibold text-foreground">Henüz bir rezervasyon kaydınız bulunmuyor</h3>
+                                    <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1 mb-4">
+                                        Aktif seferlerimizden birini seçerek anında online rezervasyon oluşturabilirsiniz.
+                                    </p>
+                                    <Button size="sm" onClick={() => setCurrentTab('book')}>
+                                        Hemen Rezervasyon Oluştur
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {myBookings.map((b) => {
+                                        const isPaid = b.paymentStatus === 'PAID';
+                                        return (
+                                            <div
+                                                key={b.id}
+                                                className="rounded-xl border border-border/70 bg-background/60 p-4 transition-all hover:border-primary/40 hover:shadow-sm"
+                                            >
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-3 mb-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="font-mono text-lg font-black text-primary">
+                                                            {b.id}
+                                                        </span>
+                                                        <Badge variant="outline" className="text-xs">
+                                                            {b.bookingChannel || 'Web'}
+                                                        </Badge>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {b.created_at ? new Date(b.created_at).toLocaleDateString('tr-TR') : ''}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2">
+                                                        {isPaid ? (
+                                                            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs font-semibold">
+                                                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                                Ödeme Onaylandı
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-xs font-semibold">
+                                                                <Clock className="h-3 w-3 mr-1" />
+                                                                Ödeme Bekleniyor
+                                                            </Badge>
+                                                        )}
+                                                        <Badge variant="secondary" className="text-xs">
+                                                            {b.status}
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-4">
+                                                    <div>
+                                                        <span className="text-muted-foreground block text-[11px]">Firma:</span>
+                                                        <span className="font-semibold text-foreground">{b.shipper}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-muted-foreground block text-[11px]">Sefer / Hat:</span>
+                                                        <span className="font-medium text-foreground">{b.voyageId} — {b.voyage?.route || 'Pendik ➔ Trieste'}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-muted-foreground block text-[11px]">Plaka / Sürücü:</span>
+                                                        <span className="font-mono font-bold text-foreground">{b.truckPlate}</span>
+                                                        {b.driverName && <span className="text-muted-foreground block">{b.driverName}</span>}
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-muted-foreground block text-[11px]">Araç Tipi / Ağırlık:</span>
+                                                        <span className="text-foreground">{b.vehicleKind || 'Komple TIR'} ({b.weightTon} Ton)</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-border/40 text-xs">
+                                                    <div className="text-muted-foreground">
+                                                        MRN: <span className="font-mono text-foreground">{b.mrnNumber || '—'}</span>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="text-xs h-8"
+                                                            onClick={() => {
+                                                                setPnrQuery(b.id);
+                                                                setCurrentTab('pnr');
+                                                                router.get('/portal', { tab: 'pnr', pnr: b.id });
+                                                            }}
+                                                        >
+                                                            <Search className="h-3 w-3 mr-1" />
+                                                            Detay / Sorgula
+                                                        </Button>
+
+                                                        {isPaid ? (
+                                                            <a
+                                                                href={`/bookings/boarding-pass/${b.id}`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-xs hover:bg-primary/90"
+                                                            >
+                                                                <Printer className="h-3.5 w-3.5" />
+                                                                Biniş Kartı (PDF)
+                                                            </a>
+                                                        ) : (
+                                                            <Button
+                                                                size="sm"
+                                                                disabled
+                                                                variant="outline"
+                                                                className="opacity-60 cursor-not-allowed border-amber-500/30 text-xs h-8"
+                                                                title="Banka ödemesi onaylanana kadar biniş kartı oluşturulamaz"
+                                                            >
+                                                                <Lock className="h-3 w-3 mr-1 text-amber-500" />
+                                                                Biniş Kartı Kilitli
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 )}

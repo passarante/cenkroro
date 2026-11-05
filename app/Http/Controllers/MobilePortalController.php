@@ -31,6 +31,22 @@ class MobilePortalController extends Controller
                 ->first();
         }
 
+        $user = $request->user();
+        $myBookings = [];
+        if ($user) {
+            $myBookings = Booking::with('voyage')->where(function ($q) use ($user) {
+                if (! empty($user->email)) {
+                    $q->orWhere('contactMail', $user->email);
+                }
+                if (! empty($user->company_name)) {
+                    $q->orWhere('shipper', 'like', "%{$user->company_name}%");
+                }
+                if (! empty($user->phone)) {
+                    $q->orWhere('driverPhone', $user->phone)->orWhere('contactPhone', $user->phone);
+                }
+            })->orderBy('created_at', 'desc')->get();
+        }
+
         return Inertia::render('portal/index', compact(
             'voyages',
             'activeVoyage',
@@ -39,7 +55,8 @@ class MobilePortalController extends Controller
             'categories',
             'activeTab',
             'pnrSearch',
-            'inquiryResult'
+            'inquiryResult',
+            'myBookings'
         ));
     }
 

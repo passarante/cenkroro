@@ -142,12 +142,6 @@ export default function Login({
                                     </>
                                 )}
                             </Button>
-
-                            <div className="rounded-md bg-muted/40 p-3 text-[11px] text-muted-foreground border">
-                                <p className="font-semibold text-foreground mb-0.5">Hızlı Rezervasyon Testi:</p>
-                                <p>Geçerli herhangi bir e-posta adresi yazıp doğrudan kod alabilir ve rezervasyonunuza devam edebilirsiniz.</p>
-                            </div>
-
                             <div className="pt-2 text-center border-t border-border/60">
                                 <Link
                                     href={route('login')}
@@ -288,17 +282,6 @@ export default function Login({
                             Platforma Giriş Yap
                         </Button>
                     </div>
-
-                    <div className="rounded-md bg-blue-50/50 p-3 text-[11px] text-blue-800 dark:bg-blue-950/20 dark:text-blue-300 border border-blue-100 dark:border-blue-900/40">
-                        <p className="font-semibold mb-1">Kayıtlı Admin & Operasyon Hesapları:</p>
-                        <div className="space-y-0.5">
-                            <p>Guney Dirim: <code>guneydirim@gmail.com</code> (Şifre: <code>75787578</code>)</p>
-                            <p>Çiğdem Kurnaz: <code>cigdem@cenkroro.com</code> (Şifre: <code>1234578*</code>)</p>
-                            <p>Hakan Sarıçayır: <code>hakan@3sgrup.com</code> (Şifre: <code>75787578</code>)</p>
-                            <p className="pt-1 text-slate-500">Operasyon: <code>operasyon@cenkroro.com</code> (Şifre: <code>password</code>)</p>
-                        </div>
-                    </div>
-
                     <div className="pt-2 text-center border-t border-border/60">
                         <Link
                             href={route('otp.login')}

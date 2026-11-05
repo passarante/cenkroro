@@ -39,16 +39,22 @@ import {
     ChevronDown,
     CreditCard,
     Edit2,
+    FileCheck,
     FileSpreadsheet,
+    FileText,
+    FileUp,
     Globe,
     Layers,
     Lock,
     Monitor,
+    Paperclip,
     Plus,
     Printer,
     Search,
+    ShieldCheck,
     Ship,
     Trash2,
+    UploadCloud,
     X,
     XCircle,
 } from 'lucide-react';
@@ -503,6 +509,84 @@ export default function BookingsIndex({
         });
     };
 
+    // Evrak Kontrolü, Opsiyonel Yükleme ve Doğrulama Modalı State ve Formu
+    const [documentBooking, setDocumentBooking] = useState<Booking | null>(null);
+    const documentForm = useForm({
+        ruhsat: true,
+        cmr: true,
+        customs: true,
+        driver_license: true,
+        insurance: true,
+        isVerified: true,
+        notes: 'Evraklar kontrol edildi ve uluslararası taşımacılık standartlarına uygun bulundu.',
+        simulatedFiles: [] as Array<{ name: string; size: string; type: string; date: string }>,
+    });
+
+    const handleOpenDocumentModal = (b: Booking) => {
+        setDocumentBooking(b);
+        const docs = b.documents_json || {};
+        const checks = docs.checks || {};
+        const isVerified = docs.verified === true;
+
+        documentForm.setData({
+            ruhsat: checks.ruhsat ?? true,
+            cmr: checks.cmr ?? true,
+            customs: checks.customs ?? true,
+            driver_license: checks.driver_license ?? true,
+            insurance: checks.insurance ?? true,
+            isVerified: isVerified ? true : true,
+            notes: docs.notes || 'Evraklar kontrol edildi ve uluslararası taşımacılık standartlarına uygun bulundu.',
+            simulatedFiles: docs.files || [],
+        });
+    };
+
+    const handleConfirmDocumentVerification = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!documentBooking) return;
+
+        documentForm.post(`/bookings/verify-documents/${documentBooking.id}`, {
+            onSuccess: () => {
+                toast.success(
+                    documentForm.data.isVerified
+                        ? `📄 ${documentBooking.truckPlate} evrakları doğrulandı ve gemiye alım izni verildi.`
+                        : `📄 ${documentBooking.truckPlate} evrak durumu güncellendi.`
+                );
+                setDocumentBooking(null);
+            },
+            onError: () => toast.error('Evrak kontrolü kaydedilirken hata oluştu.'),
+        });
+    };
+
+    const handleAddSampleDocument = (docName: string, docSize: string) => {
+        const newFile = {
+            name: `${docName}_${documentBooking?.truckPlate || 'DOC'}.pdf`,
+            size: docSize,
+            type: 'application/pdf',
+            date: new Date().toLocaleDateString('tr-TR') + ' ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+        };
+        documentForm.setData('simulatedFiles', [...documentForm.data.simulatedFiles, newFile]);
+        toast.info(`📎 "${newFile.name}" evrak listesine eklendi.`);
+    };
+
+    const handleRemoveDocumentFile = (index: number) => {
+        const nextFiles = documentForm.data.simulatedFiles.filter((_, i) => i !== index);
+        documentForm.setData('simulatedFiles', nextFiles);
+        toast.info('Evrak listeden kaldırıldı.');
+    };
+
+    const handleLocalFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        const newFiles = Array.from(e.target.files).map((f) => ({
+            name: f.name,
+            size: `${(f.size / 1024).toFixed(1)} KB`,
+            type: f.type || 'Belge',
+            date: new Date().toLocaleDateString('tr-TR') + ' ' + new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+        }));
+        documentForm.setData('simulatedFiles', [...documentForm.data.simulatedFiles, ...newFiles]);
+        toast.success(`📎 ${newFiles.length} adet dosya eklendi.`);
+        e.target.value = '';
+    };
+
     // 3. Risk Approval Form
     const riskForm = useForm({
         approver: 'Finans Müdürü',
@@ -575,9 +659,20 @@ export default function BookingsIndex({
     };
 
     // Quick Actions
-    const handleInclude = (id: string) => {
-        router.post(`/bookings/include/${id}`, {}, {
-            onSuccess: () => toast.success('Araç sefere dahil edildi ve gemiye yüklendi.'),
+    const handleInclude = (b: Booking) => {
+        const isDocsVerified = b.documents_json?.verified === true;
+        if (b.paymentStatus !== 'PAID') {
+            toast.error('Ödeme tamamlanmadan araç sefere dahil edilemez. Lütfen önce ödemeyi onaylayınız.');
+            return;
+        }
+        if (!isDocsVerified) {
+            toast.error(`Evrak doğrulaması yapılmadan araç (${b.truckPlate}) gemiye alınamaz! Lütfen önce Evrak Kontrolü yapınız.`);
+            handleOpenDocumentModal(b);
+            return;
+        }
+        router.post(`/bookings/include/${b.id}`, {}, {
+            onSuccess: () => toast.success(`🚢 ${b.truckPlate} sefere dahil edildi ve gemiye yüklendi.`),
+            onError: () => toast.error('Aracı gemiye alma işlemi gerçekleştirilemedi.'),
         });
     };
 
@@ -1021,23 +1116,57 @@ export default function BookingsIndex({
                                                                 </Button>
                                                             )}
 
-                                                            {b.boardingStatus !== 'INCLUDED' && b.boardingStatus !== 'FAILED_BOARDING' && (
+                                                            {/* Evrak Kontrolü & Belge Yükleme Butonu */}
+                                                            {b.documents_json?.verified ? (
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    disabled={b.paymentStatus !== 'PAID'}
-                                                                    className={cn(
-                                                                        "h-7 text-xs font-medium",
-                                                                        b.paymentStatus === 'PAID'
-                                                                            ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
-                                                                            : "opacity-40 cursor-not-allowed bg-muted/30 text-muted-foreground border-border hover:bg-transparent"
-                                                                    )}
-                                                                    onClick={() => b.paymentStatus === 'PAID' && handleInclude(b.id)}
-                                                                    title={b.paymentStatus === 'PAID' ? "Sefere Dahil Et" : "Ödeme tamamlanana kadar dahil edilemez"}
+                                                                    className="h-7 text-xs border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 font-medium px-2"
+                                                                    onClick={() => handleOpenDocumentModal(b)}
+                                                                    title="Evraklar Doğrulandı (İncelemek veya ek evrak yüklemek için tıklayın)"
                                                                 >
-                                                                    <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Dahil Et
+                                                                    <FileCheck className="h-3.5 w-3.5 mr-1 text-emerald-500" /> Evraklar Onaylı
+                                                                </Button>
+                                                            ) : (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-7 text-xs border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 font-medium px-2"
+                                                                    onClick={() => handleOpenDocumentModal(b)}
+                                                                    title="Ön Rezervasyon Evrak Kontrolü ve Belge Yükleme"
+                                                                >
+                                                                    <FileText className="h-3.5 w-3.5 mr-1 text-amber-500" /> Evrak Kontrolü
                                                                 </Button>
                                                             )}
+
+                                                            {b.boardingStatus !== 'INCLUDED' && b.boardingStatus !== 'FAILED_BOARDING' && (() => {
+                                                                const isDocsVerified = b.documents_json?.verified === true;
+                                                                const canInclude = b.paymentStatus === 'PAID' && isDocsVerified;
+                                                                let titleText = "Sefere Dahil Et (Gemiye Yükle)";
+                                                                if (b.paymentStatus !== 'PAID') {
+                                                                    titleText = "Ödeme tamamlanana kadar araç sefere dahil edilemez";
+                                                                } else if (!isDocsVerified) {
+                                                                    titleText = "Evrak doğrulaması tamamlanmadan araç gemiye alınamaz! Lütfen önce evrak kontrolünü onaylayınız.";
+                                                                }
+
+                                                                return (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        disabled={!canInclude}
+                                                                        className={cn(
+                                                                            "h-7 text-xs font-medium",
+                                                                            canInclude
+                                                                                ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                                                                                : "opacity-40 cursor-not-allowed bg-muted/30 text-muted-foreground border-border hover:bg-transparent"
+                                                                        )}
+                                                                        onClick={() => handleInclude(b)}
+                                                                        title={titleText}
+                                                                    >
+                                                                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Dahil Et
+                                                                    </Button>
+                                                                );
+                                                            })()}
 
                                                             {b.paymentStatus === 'PENDING_APPROVAL' && (
                                                                 <Button
@@ -1243,23 +1372,57 @@ export default function BookingsIndex({
                                                             <CreditCard className="h-3 w-3 mr-1 text-amber-500" /> Ödeme Onayla
                                                         </Button>
                                                     )}
-                                                    {b.boardingStatus !== 'INCLUDED' && b.boardingStatus !== 'FAILED_BOARDING' && (
+                                                    {/* Evrak Kontrolü & Belge Yükleme Butonu */}
+                                                    {b.documents_json?.verified ? (
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
-                                                            disabled={b.paymentStatus !== 'PAID'}
-                                                            className={cn(
-                                                                "h-7 text-xs px-2 font-medium",
-                                                                b.paymentStatus === 'PAID'
-                                                                    ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
-                                                                    : "opacity-40 cursor-not-allowed bg-muted/30 text-muted-foreground border-border hover:bg-transparent"
-                                                            )}
-                                                            onClick={() => b.paymentStatus === 'PAID' && handleInclude(b.id)}
-                                                            title={b.paymentStatus === 'PAID' ? "Sefere Dahil Et" : "Ödeme tamamlanana kadar dahil edilemez"}
+                                                            className="h-7 text-xs border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 font-medium"
+                                                            onClick={() => handleOpenDocumentModal(b)}
+                                                            title="Evraklar Doğrulandı"
                                                         >
-                                                            <CheckCircle2 className="h-3 w-3 mr-1" /> Dahil Et
+                                                            <FileCheck className="h-3 w-3 mr-1 text-emerald-500" /> Evrak Onaylı
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-7 text-xs border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2 font-medium"
+                                                            onClick={() => handleOpenDocumentModal(b)}
+                                                            title="Ön Rezervasyon Evrak Kontrolü"
+                                                        >
+                                                            <FileText className="h-3 w-3 mr-1 text-amber-500" /> Evrak Kontrolü
                                                         </Button>
                                                     )}
+
+                                                    {b.boardingStatus !== 'INCLUDED' && b.boardingStatus !== 'FAILED_BOARDING' && (() => {
+                                                        const isDocsVerified = b.documents_json?.verified === true;
+                                                        const canInclude = b.paymentStatus === 'PAID' && isDocsVerified;
+                                                        let titleText = "Sefere Dahil Et (Gemiye Yükle)";
+                                                        if (b.paymentStatus !== 'PAID') {
+                                                            titleText = "Ödeme tamamlanana kadar araç sefere dahil edilemez";
+                                                        } else if (!isDocsVerified) {
+                                                            titleText = "Evrak doğrulaması tamamlanmadan araç gemiye alınamaz! Lütfen önce evrak kontrolünü onaylayınız.";
+                                                        }
+
+                                                        return (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                disabled={!canInclude}
+                                                                className={cn(
+                                                                    "h-7 text-xs px-2 font-medium",
+                                                                    canInclude
+                                                                        ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                                                                        : "opacity-40 cursor-not-allowed bg-muted/30 text-muted-foreground border-border hover:bg-transparent"
+                                                                )}
+                                                                onClick={() => handleInclude(b)}
+                                                                title={titleText}
+                                                            >
+                                                                <CheckCircle2 className="h-3 w-3 mr-1" /> Dahil Et
+                                                            </Button>
+                                                        );
+                                                    })()}
                                                     {b.paymentStatus === 'PENDING_APPROVAL' && (
                                                         <Button
                                                             variant="outline"
@@ -2020,6 +2183,291 @@ export default function BookingsIndex({
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                                 >
                                     {paymentApprovalForm.processing ? 'Onaylanıyor...' : 'Ödemeyi Onayla ve Ödendi Yap'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* 7. Evrak Kontrolü ve Belge Yükleme Modalı */}
+            <Dialog open={!!documentBooking} onOpenChange={(open) => !open && setDocumentBooking(null)}>
+                <DialogContent className="max-w-2xl sm:max-w-2xl max-h-[92vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+                            <FileText className="h-5 w-5 text-amber-500" />
+                            Ön Rezervasyon Evrak Kontrolü & Belge Yönetimi
+                        </DialogTitle>
+                        <DialogDescription>
+                            Aracın sefere dahil edilebilmesi için evrakların doğruluğunu onaylayın veya gerekli belgeleri yükleyin.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {documentBooking && (
+                        <form onSubmit={handleConfirmDocumentVerification} className="space-y-4 pt-1">
+                            {/* Araç & Rezervasyon Özet Kartı */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-lg border border-border/70 bg-muted/30 p-3 text-xs">
+                                <div>
+                                    <span className="text-muted-foreground block text-[11px]">Bilet / PNR No:</span>
+                                    <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{documentBooking.id}</span>
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground block text-[11px]">Çekici / Dorse:</span>
+                                    <span className="font-mono font-bold text-foreground">{documentBooking.truckPlate} {documentBooking.trailerPlate ? `/ ${documentBooking.trailerPlate}` : ''}</span>
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground block text-[11px]">Firma (Taşıyıcı):</span>
+                                    <span className="font-medium text-foreground truncate block">{documentBooking.shipper}</span>
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground block text-[11px]">Sürücü:</span>
+                                    <span className="font-medium text-foreground truncate block">{documentBooking.driverName || 'Belirtilmedi'}</span>
+                                </div>
+                            </div>
+
+                            {/* Gemiye Alım Kuralı Uyarısı */}
+                            <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+                                <AlertCircle className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
+                                <div>
+                                    <strong className="font-semibold block mb-0.5">Operasyonel Güvenlik Kuralı:</strong>
+                                    Evrak doğrulaması onaylanmayan araçlar sefere dahil edilemez (Dahil Et butonu pasif tutulur). İster belgeleri sisteme yükleyebilir, isterseniz fiziksel evrakların doğruluğunu kontrol edip doğrudan onay verebilirsiniz.
+                                </div>
+                            </div>
+
+                            {/* 1. Evrak Doğruluk Kontrol Listesi */}
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
+                                    Evrak Doğruluk Kontrol Listesi
+                                </Label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                    <label className="flex items-start gap-2.5 p-2.5 rounded-md border border-border/70 hover:bg-muted/40 cursor-pointer transition-colors">
+                                        <Checkbox
+                                            checked={documentForm.data.ruhsat}
+                                            onCheckedChange={(checked) => documentForm.setData('ruhsat', !!checked)}
+                                            className="mt-0.5"
+                                        />
+                                        <div>
+                                            <span className="font-semibold block text-foreground">Ruhsat & Araç Tescili</span>
+                                            <span className="text-[11px] text-muted-foreground">Çekici ve dorse plaka uygunluğu</span>
+                                        </div>
+                                    </label>
+
+                                    <label className="flex items-start gap-2.5 p-2.5 rounded-md border border-border/70 hover:bg-muted/40 cursor-pointer transition-colors">
+                                        <Checkbox
+                                            checked={documentForm.data.cmr}
+                                            onCheckedChange={(checked) => documentForm.setData('cmr', !!checked)}
+                                            className="mt-0.5"
+                                        />
+                                        <div>
+                                            <span className="font-semibold block text-foreground">CMR Taşıma Belgesi</span>
+                                            <span className="text-[11px] text-muted-foreground">Uluslararası sevk irsaliyesi</span>
+                                        </div>
+                                    </label>
+
+                                    <label className="flex items-start gap-2.5 p-2.5 rounded-md border border-border/70 hover:bg-muted/40 cursor-pointer transition-colors">
+                                        <Checkbox
+                                            checked={documentForm.data.customs}
+                                            onCheckedChange={(checked) => documentForm.setData('customs', !!checked)}
+                                            className="mt-0.5"
+                                        />
+                                        <div>
+                                            <span className="font-semibold block text-foreground">Gümrük / T1 / MRN Evrakı</span>
+                                            <span className="text-[11px] text-muted-foreground">Transit gümrük beyanı & tescil</span>
+                                        </div>
+                                    </label>
+
+                                    <label className="flex items-start gap-2.5 p-2.5 rounded-md border border-border/70 hover:bg-muted/40 cursor-pointer transition-colors">
+                                        <Checkbox
+                                            checked={documentForm.data.driver_license}
+                                            onCheckedChange={(checked) => documentForm.setData('driver_license', !!checked)}
+                                            className="mt-0.5"
+                                        />
+                                        <div>
+                                            <span className="font-semibold block text-foreground">Sürücü Pasaport & Vize</span>
+                                            <span className="text-[11px] text-muted-foreground">Kaptan/şoför kimlik & ehliyet</span>
+                                        </div>
+                                    </label>
+
+                                    <label className="flex items-start gap-2.5 p-2.5 rounded-md border border-border/70 hover:bg-muted/40 cursor-pointer transition-colors sm:col-span-2">
+                                        <Checkbox
+                                            checked={documentForm.data.insurance}
+                                            onCheckedChange={(checked) => documentForm.setData('insurance', !!checked)}
+                                            className="mt-0.5"
+                                        />
+                                        <div>
+                                            <span className="font-semibold block text-foreground">Yeşil Kart & CMR Sigortası</span>
+                                            <span className="text-[11px] text-muted-foreground">Uluslararası geçerli mali mesuliyet ve yük sigortası poliçesi</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* 2. Opsiyonel Evrak / Belge Yükleme */}
+                            <div className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-3">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                        <UploadCloud className="h-3.5 w-3.5 text-blue-500" />
+                                        Evrak / Belge Yükleme (Opsiyonel)
+                                    </Label>
+                                    <span className="text-[11px] text-muted-foreground">
+                                        PDF, JPG, PNG formatları desteklenir
+                                    </span>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                    {/* Gerçek Dosya Seçici */}
+                                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background hover:bg-muted text-xs font-medium cursor-pointer transition-colors shadow-xs">
+                                        <FileUp className="h-3.5 w-3.5 text-blue-500" />
+                                        Bilgisayardan Dosya Seç
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept=".pdf,.png,.jpg,.jpeg"
+                                            className="hidden"
+                                            onChange={handleLocalFileUpload}
+                                        />
+                                    </label>
+
+                                    {/* Hızlı Test / Örnek Evrak Ekleme Butonları */}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-[11px] border-dashed border-border"
+                                        onClick={() => handleAddSampleDocument('CMR_Belgesi', '1.4 MB')}
+                                    >
+                                        + Örnek CMR Ekle
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-[11px] border-dashed border-border"
+                                        onClick={() => handleAddSampleDocument('Arac_Ruhsati', '2.1 MB')}
+                                    >
+                                        + Örnek Ruhsat Ekle
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-[11px] border-dashed border-border"
+                                        onClick={() => handleAddSampleDocument('Gumruk_T1', '890 KB')}
+                                    >
+                                        + Örnek Gümrük T1 Ekle
+                                    </Button>
+                                </div>
+
+                                {/* Yüklenen / Eklenen Belgeler Listesi */}
+                                {documentForm.data.simulatedFiles && documentForm.data.simulatedFiles.length > 0 ? (
+                                    <div className="space-y-1.5 pt-2">
+                                        <span className="text-[11px] font-semibold text-muted-foreground block">
+                                            Ekli Belgeler ({documentForm.data.simulatedFiles.length} dosya):
+                                        </span>
+                                        <div className="space-y-1 max-h-36 overflow-y-auto">
+                                            {documentForm.data.simulatedFiles.map((f, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className="flex items-center justify-between p-2 rounded border border-border/70 bg-background text-xs"
+                                                >
+                                                    <div className="flex items-center gap-2 truncate">
+                                                        <Paperclip className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                                                        <span className="font-medium text-foreground truncate">{f.name}</span>
+                                                        <span className="text-[10px] text-muted-foreground">({f.size})</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        <span className="text-[10px] text-muted-foreground hidden sm:inline">{f.date}</span>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                                            onClick={() => handleRemoveDocumentFile(idx)}
+                                                            title="Belgeyi Kaldır"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-[11px] text-muted-foreground italic pt-1">
+                                        Henüz yüklenmiş belge bulunmamaktadır (Belge yükleme opsiyoneldir; fiziki evrak kontrolü yapıldıysa aşağıdaki onay kutusuyla gemiye biniş izni verilebilir).
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* 3. Evrak Doğrulama Onayı ve Not */}
+                            <div className="space-y-3 pt-1">
+                                <label
+                                    className={cn(
+                                        "flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-colors",
+                                        documentForm.data.isVerified
+                                            ? "border-emerald-500/50 bg-emerald-500/10 dark:bg-emerald-500/15"
+                                            : "border-border bg-muted/30"
+                                    )}
+                                >
+                                    <Checkbox
+                                        checked={documentForm.data.isVerified}
+                                        onCheckedChange={(checked) => documentForm.setData('isVerified', !!checked)}
+                                        className="mt-0.5 border-emerald-500 data-[state=checked]:bg-emerald-600"
+                                    />
+                                    <div>
+                                        <span className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                                            <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                            Evrakların Doğruluğu Onaylandı (Gemiye Alım İzni Ver)
+                                        </span>
+                                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                                            Bu onay verildiğinde biletin evrak kontrol durumu <strong>&quot;Evraklar Onaylı&quot;</strong> yapılacak ve ödemesi de tamamsa araç <strong>&quot;Dahil Et&quot;</strong> butonuyla sefere yüklenebilecektir.
+                                        </p>
+                                    </div>
+                                </label>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">Operasyon / Evrak İnceleme Notu</Label>
+                                    <Input
+                                        value={documentForm.data.notes}
+                                        onChange={(e) => documentForm.setData('notes', e.target.value)}
+                                        placeholder="Örn: Evraklar kontrol edildi ve uygun bulundu."
+                                        className="h-8 text-xs"
+                                    />
+                                </div>
+                            </div>
+
+                            <DialogFooter className="pt-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setDocumentBooking(null)}
+                                >
+                                    Vazgeç
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={documentForm.processing}
+                                    className={cn(
+                                        "font-bold",
+                                        documentForm.data.isVerified
+                                            ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                            : "bg-blue-600 hover:bg-blue-700 text-white"
+                                    )}
+                                >
+                                    {documentForm.processing ? (
+                                        'Kaydediliyor...'
+                                    ) : documentForm.data.isVerified ? (
+                                        <>
+                                            <ShieldCheck className="mr-1.5 h-4 w-4" />
+                                            Evrakları Doğrula ve Gemiye Biniş İzni Ver
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FileText className="mr-1.5 h-4 w-4" />
+                                            Evrak Bilgilerini Kaydet
+                                        </>
+                                    )}
                                 </Button>
                             </DialogFooter>
                         </form>

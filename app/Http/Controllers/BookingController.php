@@ -369,7 +369,7 @@ class BookingController extends Controller
             ->with('success', "🚢 {$booking->truckPlate} plakalı araç sefere ({$voyageId}) bağlandı.");
     }
 
-    // Tek tıkla sefere dahil et
+    // Tek tıkla sefere dahil et (Gemiye al)
     public function includeInVoyage($id)
     {
         $booking = Booking::findOrFail($id);
@@ -377,6 +377,15 @@ class BookingController extends Controller
         if ($booking->paymentStatus !== 'PAID') {
             return redirect()->back()
                 ->with('error', 'Ödeme tamamlanmadan araç sefere dahil edilemez. Lütfen önce ödemeyi onaylayınız.');
+        }
+
+        // Evrak kontrolü zorunluluğu: Evraklar doğrulanmadan aracı gemiye alma
+        $docs = $booking->documents_json;
+        $isDocsVerified = is_array($docs) && ! empty($docs['verified']);
+
+        if (! $isDocsVerified) {
+            return redirect()->back()
+                ->with('error', "Evrak doğrulaması tamamlanmadan araç ({$booking->truckPlate}) gemiye alınamaz! Lütfen önce evrak kontrolünü onaylayınız.");
         }
 
         $booking->update([
@@ -387,6 +396,64 @@ class BookingController extends Controller
 
         return redirect()->back()
             ->with('success', "✅ {$booking->truckPlate} sefere başarıyla DAHİL EDİLDİ ve yüklendi.");
+    }
+
+    // Evrak kontrolü, opsiyonel evrak yükleme ve doğrulama onayı
+    public function verifyDocuments(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+
+        $existingDocs = is_array($booking->documents_json) ? $booking->documents_json : [];
+        $existingFiles = $existingDocs['files'] ?? [];
+
+        $uploadedFiles = [];
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $filename = time().'_'.$file->getClientOriginalName();
+                $path = $file->storeAs('booking_documents', $filename, 'public');
+                $uploadedFiles[] = [
+                    'name' => $file->getClientOriginalName(),
+                    'path' => '/storage/'.$path,
+                    'size' => round($file->getSize() / 1024, 1).' KB',
+                    'uploaded_at' => now()->format('Y-m-d H:i'),
+                ];
+            }
+        } elseif ($request->has('simulatedFiles')) {
+            $uploadedFiles = (array) $request->input('simulatedFiles', []);
+        }
+
+        $allFiles = array_merge($existingFiles, $uploadedFiles);
+
+        $checks = [
+            'ruhsat' => filter_var($request->input('ruhsat', true), FILTER_VALIDATE_BOOLEAN),
+            'cmr' => filter_var($request->input('cmr', true), FILTER_VALIDATE_BOOLEAN),
+            'customs' => filter_var($request->input('customs', true), FILTER_VALIDATE_BOOLEAN),
+            'driver_license' => filter_var($request->input('driver_license', true), FILTER_VALIDATE_BOOLEAN),
+            'insurance' => filter_var($request->input('insurance', true), FILTER_VALIDATE_BOOLEAN),
+        ];
+
+        $isVerified = filter_var($request->input('isVerified', true), FILTER_VALIDATE_BOOLEAN);
+        $notes = $request->input('notes', 'Operasyon yetkilisi tarafından evraklar incelendi ve doğrulandı.');
+
+        $documentsJson = [
+            'verified' => $isVerified,
+            'verified_at' => $isVerified ? now()->format('Y-m-d H:i') : null,
+            'verified_by' => auth()->user()?->name ?? 'Operasyon Yetkilisi',
+            'checks' => $checks,
+            'files' => $allFiles,
+            'notes' => $notes,
+            'summary' => $isVerified ? 'Evraklar Doğrulandı' : 'Evrak İncelemesi Bekleniyor',
+        ];
+
+        $booking->update([
+            'documents_json' => $documentsJson,
+        ]);
+
+        $statusMsg = $isVerified
+            ? "📄 {$booking->truckPlate} biletinin evrakları doğrulandı ve gemiye alım izni verildi."
+            : "📄 {$booking->truckPlate} biletinin evrak bilgileri güncellendi.";
+
+        return redirect()->back()->with('success', $statusMsg);
     }
 
     // Riskli cariye istisnai onay verip sefere dahil etme

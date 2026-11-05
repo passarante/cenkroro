@@ -52,6 +52,7 @@ Route::prefix('bookings')->name('bookings.')->middleware('permission:bookings')-
     Route::post('/assign/{id}', [BookingController::class, 'assignVoyage'])->name('assign');
     Route::post('/include/{id}', [BookingController::class, 'includeInVoyage'])->name('include');
     Route::post('/approve-payment/{id}', [BookingController::class, 'approvePayment'])->name('approve_payment');
+    Route::post('/verify-documents/{id}', [BookingController::class, 'verifyDocuments'])->name('verify_documents');
     Route::post('/risk-approval/{id}', [BookingController::class, 'riskApproval'])->name('risk_approval');
     Route::post('/failed-boarding/{id}', [BookingController::class, 'failedBoarding'])->name('failed_boarding');
     Route::get('/boarding-pass/{id}', [BookingController::class, 'boardingPass'])->name('boarding_pass');

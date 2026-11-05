@@ -127,11 +127,18 @@ class MobilePortalController extends Controller
                 'logoVerbisSync' => 'Senkronize',
             ],
             'documents_json' => [
-                'uetds' => true,
-                'customs' => true,
-                'inspection' => true,
-                'insurance' => true,
-                'summary' => 'Web Portalı Başvurusu',
+                'verified' => false,
+                'verified_by' => null,
+                'verified_at' => null,
+                'checks' => [
+                    'ruhsat' => false,
+                    'cmr' => false,
+                    'customs' => false,
+                    'driver_license' => false,
+                    'insurance' => false,
+                ],
+                'files' => [],
+                'summary' => 'Evrak Doğrulaması Bekleniyor',
             ],
         ]);
 

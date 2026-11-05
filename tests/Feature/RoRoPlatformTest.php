@@ -340,7 +340,7 @@ test('include in voyage is rejected when payment is not completed', function () 
     expect($booking->boardingStatus)->toBe('WAITING_APPROVAL');
 });
 
-test('include in voyage succeeds when payment is PAID', function () {
+test('include in voyage succeeds when payment is PAID and documents are verified', function () {
     $booking = Booking::create([
         'id' => 'BK-TEST-INC-PASS',
         'shipper' => 'Ekol Lojistik Test',
@@ -353,6 +353,10 @@ test('include in voyage succeeds when payment is PAID', function () {
         'boardingStatus' => 'WAITING_APPROVAL',
         'status' => 'Rezervasyon Açıldı',
         'bookingChannel' => 'Platform',
+        'documents_json' => [
+            'verified' => true,
+            'summary' => 'Evraklar Doğrulandı',
+        ],
     ]);
 
     $response = $this->post("/bookings/include/{$booking->id}");
@@ -454,4 +458,62 @@ test('operations officer can approve payment and select payment method', functio
     expect($booking->paymentStatus)->toBe('PAID');
     expect($booking->paymentMethod)->toBe('Cari Hesap');
     expect($booking->status)->toBe('Ödeme Alındı / Onaylandı');
+});
+
+test('vehicle cannot be boarded onto ship before documents are verified', function () {
+    $booking = Booking::create([
+        'id' => 'BK-TEST-DOC-CHECK',
+        'voyageId' => 'VOY-452',
+        'shipper' => 'Test Lojistik A.Ş.',
+        'truckPlate' => '34 DOC 01',
+        'category' => 'Komple TIR',
+        'lengthMeters' => 16.5,
+        'weightTon' => 34.0,
+        'paymentMethod' => 'Cari Hesap',
+        'paymentStatus' => 'PAID', // Paid, but documents not verified
+        'boardingStatus' => 'WAITING_APPROVAL',
+        'status' => 'Rezervasyon Açıldı',
+        'bookingChannel' => 'Web',
+        'documents_json' => [
+            'verified' => false,
+            'summary' => 'Evrak Doğrulaması Bekleniyor',
+        ],
+    ]);
+
+    // Attempting to include in voyage must fail because documents are not verified
+    $response = $this->post("/bookings/include/{$booking->id}");
+    $response->assertSessionHas('error');
+    expect(session('error'))->toContain('Evrak doğrulaması tamamlanmadan araç');
+
+    $booking->refresh();
+    expect($booking->boardingStatus)->not->toBe('INCLUDED');
+
+    // Now perform document verification
+    $verifyResponse = $this->post("/bookings/verify-documents/{$booking->id}", [
+        'ruhsat' => true,
+        'cmr' => true,
+        'customs' => true,
+        'driver_license' => true,
+        'insurance' => true,
+        'isVerified' => true,
+        'notes' => 'Tüm evraklar fiziki olarak kontrol edildi ve onaylandı.',
+        'simulatedFiles' => [
+            ['name' => 'CMR_34DOC01.pdf', 'size' => '1.2 MB', 'type' => 'application/pdf'],
+        ],
+    ]);
+
+    $verifyResponse->assertRedirect();
+    $verifyResponse->assertSessionHas('success');
+
+    $booking->refresh();
+    expect($booking->documents_json['verified'])->toBeTrue();
+    expect($booking->documents_json['files'])->toHaveCount(1);
+
+    // Now include in voyage succeeds
+    $includeResponse = $this->post("/bookings/include/{$booking->id}");
+    $includeResponse->assertSessionHas('success');
+
+    $booking->refresh();
+    expect($booking->boardingStatus)->toBe('INCLUDED');
+    expect($booking->status)->toBe('Gemide (Loaded)');
 });

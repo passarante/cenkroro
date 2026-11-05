@@ -313,7 +313,7 @@ export default function Landing({
                     </div>
 
                     <Link
-                        href={user ? (user.role === 'field' ? '/portal' : '/dashboard') : '/login'}
+                        href={user ? (user.role === 'field' ? '/portal' : '/dashboard') : '/login/otp'}
                         className="flex items-center gap-2 rounded-lg border border-sky-500/40 bg-[#0f172a] px-4 py-2 text-xs font-bold text-sky-400 hover:bg-slate-800 hover:text-white transition-all shadow-sm"
                     >
                         <Shield className="h-4 w-4 text-sky-400" />

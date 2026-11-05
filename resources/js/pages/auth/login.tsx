@@ -82,16 +82,16 @@ export default function Login({
 
     return (
         <AuthLayout
-            title={isOtp ? 'Cenk Ro-Ro Rezervasyon Girişi' : 'Cenk Ro-Ro Platform Girişi'}
+            title={isOtp ? 'Cenk Ro-Ro Platform Girişi' : 'Cenk Ro-Ro Platform Girişi'}
             description={
                 isOtp
-                    ? 'E-posta adresinize gönderilecek tek kullanımlık kod (OTP) ile hızlı giriş yapın.'
+                    ? 'E-posta adresinize gönderilecek tek kullanımlık güvenlik kodu (OTP) ile hızlı ve güvenli giriş yapın.'
                     : 'Yönetici ve operasyon personeli için e-posta ve şifre ile yetkili giriş.'
             }
         >
-            <Head title={isOtp ? 'Rezervasyon Girişi (OTP)' : 'Platform Girişi'} />
+            <Head title={isOtp ? 'Platform Girişi (OTP)' : 'Platform Girişi'} />
 
-            {/* 1. OTP İLE HIZLI REZERVASYON GİRİŞİ */}
+            {/* 1. OTP İLE HIZLI REZERVASYON & PLATFORM GİRİŞİ */}
             {isOtp ? (
                 <div className="flex flex-col gap-5">
                     {!isOtpSent ? (
@@ -100,10 +100,10 @@ export default function Login({
                             <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 p-3.5 text-xs text-amber-900 dark:text-amber-200">
                                 <p className="font-semibold flex items-center gap-1.5 mb-1 text-amber-800 dark:text-amber-300">
                                     <KeyRound className="h-4 w-4 text-amber-600" />
-                                    Tek Kullanımlık Kod ile Doğrulama (OTP)
+                                    Tek Kullanımlık Kod ile Güvenli Giriş (OTP)
                                 </p>
                                 <p className="leading-relaxed">
-                                    Şifre belirlemenize gerek yoktur. E-posta adresinize 6 haneli tek kullanımlık bir giriş kodu (OTP) gönderilecektir.
+                                    Şifre hatırlamanıza gerek yoktur. E-posta adresinize 6 haneli tek kullanımlık bir giriş kodu (OTP) gönderilecektir.
                                 </p>
                             </div>
 
@@ -144,11 +144,11 @@ export default function Login({
                             </Button>
                             <div className="pt-2 text-center border-t border-border/60">
                                 <Link
-                                    href={route('login')}
+                                    href={route('login', { tab: 'password' })}
                                     className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
                                 >
                                     <ShieldCheck className="h-4 w-4 text-blue-600" />
-                                    <span>Yönetici & Operasyon Platform Girişi (Şifre ile) →</span>
+                                    <span>Yönetici & Operasyon Şifre ile Giriş →</span>
                                 </Link>
                             </div>
                         </form>
@@ -288,7 +288,7 @@ export default function Login({
                             className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
                         >
                             <Smartphone className="h-4 w-4 text-amber-600" />
-                            <span>Online Rezervasyon Yapmak İçin (OTP ile Giriş) →</span>
+                            <span>Tek Kullanımlık Kod (OTP) ile Giriş Yap →</span>
                         </Link>
                     </div>
                 </form>

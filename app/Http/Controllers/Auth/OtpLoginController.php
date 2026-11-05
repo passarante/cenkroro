@@ -134,19 +134,18 @@ class OtpLoginController extends Controller
         Auth::login($user, remember: true);
         $request->session()->regenerate();
 
-        $redirectUrl = $request->session()->pull('otp_redirect', route('portal.index', absolute: false));
+        $defaultRedirect = $user->isField()
+            ? route('portal.index', absolute: false)
+            : route('dashboard', absolute: false);
+
+        $redirectUrl = $request->session()->pull('otp_redirect', $defaultRedirect);
         $voyageId = $request->session()->pull('otp_voyage_id');
 
         if ($voyageId) {
             $redirectUrl = route('portal.index', ['tab' => 'book', 'voyageId' => $voyageId], absolute: false);
         }
 
-        if ($user->isField() || $redirectUrl !== route('dashboard', absolute: false)) {
-            return redirect()->intended($redirectUrl)
-                ->with('success', "Hoş geldiniz, {$user->name}!");
-        }
-
-        return redirect()->intended(route('dashboard', absolute: false))
+        return redirect()->intended($redirectUrl)
             ->with('success', "Hoş geldiniz, {$user->name}!");
     }
 }

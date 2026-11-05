@@ -18,10 +18,14 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(Request $request): Response
     {
+        $tab = $request->query('tab', 'otp');
+
         return Inertia::render('auth/login', [
-            'initialTab' => 'password',
+            'initialTab' => $tab,
             'canResetPassword' => Route::has('password.request'),
             'status' => $request->session()->get('status'),
+            'otpSentTo' => $request->session()->get('otp_sent_to'),
+            'otpCodeDemo' => $request->session()->get('otp_code_demo'),
         ]);
     }
 

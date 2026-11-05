@@ -329,20 +329,24 @@ class BookingController extends Controller
             ->with('success', "Bilet [{$id}] bilgileri güncellendi.");
     }
 
-    // Banka ödemesini onayla (Ödendi yap)
-    public function approvePayment($id)
+    // Operasyon / Finans ödeme onaylama (Ödeme tipini seçerek onaylar)
+    public function approvePayment(Request $request, $id)
     {
         $booking = Booking::findOrFail($id);
 
+        $paymentMethod = $request->input('paymentMethod')
+            ?: ($booking->paymentMethod && $booking->paymentMethod !== 'Belirlenmedi' ? $booking->paymentMethod : 'Banka Havalesi / EFT');
+
         $booking->update([
             'paymentStatus' => 'PAID',
+            'paymentMethod' => $paymentMethod,
             'status' => ($booking->status === 'Rezervasyon Açıldı' || $booking->status === 'Ödeme Bekleniyor')
                 ? 'Ödeme Alındı / Onaylandı'
                 : $booking->status,
         ]);
 
         return redirect()->back()
-            ->with('success', "💳 {$booking->truckPlate} biletinin banka ödemesi onaylandı ve durumu 'Ödendi' olarak güncellendi.");
+            ->with('success', "💳 {$booking->truckPlate} biletinin ödemesi ({$paymentMethod}) onaylandı ve durumu 'Ödendi' olarak güncellendi.");
     }
 
     public function destroy($id)

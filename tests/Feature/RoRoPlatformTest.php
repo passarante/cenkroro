@@ -427,3 +427,31 @@ test('web booking boarding pass is blocked with 403 until payment is approved', 
         ->has('booking')
     );
 });
+
+test('operations officer can approve payment and select payment method', function () {
+    $booking = Booking::create([
+        'id' => 'BK-TEST-OP-PAY',
+        'shipper' => 'Mars Lojistik Test',
+        'truckPlate' => '34 MARS 99',
+        'category' => 'Komple TIR',
+        'lengthMeters' => 16.5,
+        'weightTon' => 34.0,
+        'paymentMethod' => 'Belirlenmedi',
+        'paymentStatus' => 'WAITING_PAYMENT',
+        'boardingStatus' => 'WAITING_APPROVAL',
+        'status' => 'Ödeme Bekleniyor',
+        'bookingChannel' => 'Web',
+    ]);
+
+    $response = $this->post("/bookings/approve-payment/{$booking->id}", [
+        'paymentMethod' => 'Cari Hesap',
+    ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+
+    $booking->refresh();
+    expect($booking->paymentStatus)->toBe('PAID');
+    expect($booking->paymentMethod)->toBe('Cari Hesap');
+    expect($booking->status)->toBe('Ödeme Alındı / Onaylandı');
+});

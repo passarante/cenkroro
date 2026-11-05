@@ -158,7 +158,7 @@ export default function Landing({
         vehicleKind: 'Çekici',
         trailerType: 'Tenteli',
         hasElectricity: '0',
-        paymentMethod: 'Banka',
+        paymentMethod: '',
     });
 
     const handleShipperChange = (val: string) => {
@@ -702,21 +702,14 @@ export default function Landing({
                             </div>
                         </div>
 
-                        <div className="space-y-1.5 p-3 rounded-lg border border-slate-200 bg-slate-50">
-                            <Label className="text-xs font-bold text-slate-700">Ödeme Yöntemi *</Label>
-                            <select
-                                value={bookingForm.data.paymentMethod}
-                                onChange={(e) => bookingForm.setData('paymentMethod', e.target.value)}
-                                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-xs"
-                            >
-                                <option value="Banka">🏦 Banka Havalesi / EFT (Ödeme Onayı Beklenir)</option>
-                                <option value="Cari Hesap">💼 Cari Hesap (Açık Hesap / Anlaşmalı Firmalar)</option>
-                            </select>
-                            <p className="text-[11px] text-slate-500">
-                                {bookingForm.data.paymentMethod === 'Banka'
-                                    ? '⏳ Banka havalesi / EFT ile ödemelerde ödeme finans tarafından onaylanana kadar biniş kartı yazdırılamaz.'
-                                    : '✓ Cari hesap anlaşması bulunan kayıtlı müşterilerimiz içindir.'}
-                            </p>
+                        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 flex items-start gap-2.5">
+                            <span className="text-base leading-none">⏳</span>
+                            <div>
+                                <span className="font-semibold">Ödeme Onayı Bilgilendirmesi:</span>
+                                <p className="mt-0.5 text-[11px] text-slate-600">
+                                    Rezervasyonunuz doğrudan operasyon onay listesine düşecektir. Ödeme tipi ve onayı operasyon yetkililerimizce onaylandıktan sonra biniş kartınız hazır olacaktır.
+                                </p>
+                            </div>
                         </div>
 
                         <DialogFooter className="pt-4 border-t border-slate-200">

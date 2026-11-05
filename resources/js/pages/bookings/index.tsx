@@ -480,10 +480,25 @@ export default function BookingsIndex({
         });
     };
 
-    // Banka Ödemesini Onayla
-    const handleApprovePayment = (id: string, plate: string) => {
-        router.post(`/bookings/approve-payment/${id}`, {}, {
-            onSuccess: () => toast.success(`💳 ${plate} biletinin banka ödemesi onaylandı ve durumu 'Ödendi' olarak güncellendi.`),
+    // Ödeme Onay Modalı State ve Formu
+    const [paymentApprovalBooking, setPaymentApprovalBooking] = useState<Booking | null>(null);
+    const paymentApprovalForm = useForm({
+        paymentMethod: 'Banka Havalesi / EFT',
+    });
+
+    const handleOpenPaymentApproval = (b: Booking) => {
+        setPaymentApprovalBooking(b);
+        paymentApprovalForm.setData('paymentMethod', b.paymentMethod && b.paymentMethod !== 'Belirlenmedi' ? b.paymentMethod : 'Banka Havalesi / EFT');
+    };
+
+    const handleConfirmPaymentApproval = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!paymentApprovalBooking) return;
+        paymentApprovalForm.post(`/bookings/approve-payment/${paymentApprovalBooking.id}`, {
+            onSuccess: () => {
+                toast.success(`💳 ${paymentApprovalBooking.truckPlate} biletinin ödemesi (${paymentApprovalForm.data.paymentMethod}) onaylandı.`);
+                setPaymentApprovalBooking(null);
+            },
             onError: () => toast.error('Ödeme onaylama işlemi sırasında bir hata oluştu.'),
         });
     };
@@ -999,8 +1014,8 @@ export default function BookingsIndex({
                                                                     variant="outline"
                                                                     size="sm"
                                                                     className="h-7 text-xs border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-medium"
-                                                                    onClick={() => handleApprovePayment(b.id, b.truckPlate)}
-                                                                    title="Banka Ödemesini Onayla ve Ödendi Yap"
+                                                                    onClick={() => handleOpenPaymentApproval(b)}
+                                                                    title="Ödeme Onayı Ver ve Ödeme Tipini Seç"
                                                                 >
                                                                     <CreditCard className="h-3.5 w-3.5 mr-1 text-amber-500" /> Ödemeyi Onayla
                                                                 </Button>
@@ -1222,8 +1237,8 @@ export default function BookingsIndex({
                                                             variant="outline"
                                                             size="sm"
                                                             className="h-7 text-xs border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 px-2 font-medium"
-                                                            onClick={() => handleApprovePayment(b.id, b.truckPlate)}
-                                                            title="Banka Ödemesini Onayla"
+                                                            onClick={() => handleOpenPaymentApproval(b)}
+                                                            title="Ödeme Onayı Ver ve Ödeme Tipini Seç"
                                                         >
                                                             <CreditCard className="h-3 w-3 mr-1 text-amber-500" /> Ödeme Onayla
                                                         </Button>
@@ -1934,6 +1949,81 @@ export default function BookingsIndex({
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* 6. Ödeme Onayı ve Yöntem Seçim Modalı */}
+            <Dialog open={!!paymentApprovalBooking} onOpenChange={(open) => !open && setPaymentApprovalBooking(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+                            <CreditCard className="h-5 w-5 text-amber-500" />
+                            Rezervasyon Ödeme Onayı & Tahsilat
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    {paymentApprovalBooking && (
+                        <form onSubmit={handleConfirmPaymentApproval} className="space-y-4 pt-1">
+                            <div className="rounded-lg border border-border/70 bg-muted/30 p-3 space-y-2 text-xs">
+                                <div className="flex justify-between items-center pb-2 border-b border-border/50">
+                                    <span className="text-muted-foreground">Bilet / Rezervasyon No:</span>
+                                    <span className="font-mono font-bold text-foreground">{paymentApprovalBooking.id}</span>
+                                </div>
+                                <div className="flex justify-between items-center pb-2 border-b border-border/50">
+                                    <span className="text-muted-foreground">Çekici Plakası:</span>
+                                    <span className="font-mono font-bold text-foreground">{paymentApprovalBooking.truckPlate}</span>
+                                </div>
+                                <div className="flex justify-between items-center pb-2 border-b border-border/50">
+                                    <span className="text-muted-foreground">Firma / Taşıyıcı:</span>
+                                    <span className="font-medium text-foreground">{paymentApprovalBooking.shipper}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">Tutar:</span>
+                                    <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                                        {paymentApprovalBooking.paymentAmountEur ? `${paymentApprovalBooking.paymentAmountEur.toLocaleString('tr-TR')} €` : '1.650 €'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="paymentMethod" className="font-semibold text-foreground text-xs">
+                                    Ödeme / Tahsilat Yöntemi *
+                                </Label>
+                                <select
+                                    id="paymentMethod"
+                                    value={paymentApprovalForm.data.paymentMethod}
+                                    onChange={(e) => paymentApprovalForm.setData('paymentMethod', e.target.value)}
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                                    required
+                                >
+                                    <option value="Banka Havalesi / EFT">🏦 Banka Havalesi / EFT</option>
+                                    <option value="Cari Hesap">💼 Cari Hesap (Açık Hesap / Anlaşmalı)</option>
+                                    <option value="Kredi Kartı">💳 Kredi Kartı / Mail Order</option>
+                                    <option value="Nakit / Vezne">💵 Nakit / Liman Vezne Tahsilatı</option>
+                                </select>
+                                <p className="text-[11px] text-muted-foreground">
+                                    Onay verildiğinde biletin ödeme durumu &apos;Ödendi&apos; yapılacak ve operasyon biniş kartı yazdırma izni açılacaktır.
+                                </p>
+                            </div>
+
+                            <DialogFooter className="pt-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setPaymentApprovalBooking(null)}
+                                >
+                                    Vazgeç
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={paymentApprovalForm.processing}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                                >
+                                    {paymentApprovalForm.processing ? 'Onaylanıyor...' : 'Ödemeyi Onayla ve Ödendi Yap'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    )}
                 </DialogContent>
             </Dialog>
         </AppLayout>

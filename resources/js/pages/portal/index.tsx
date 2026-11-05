@@ -91,7 +91,7 @@ export default function MobilePortalIndex({
         vehicleKind: 'Çekici',
         trailerType: 'Tenteli',
         hasElectricity: '0',
-        paymentMethod: 'Banka',
+        paymentMethod: '',
     });
 
     const handleShipperChange = (val: string) => {
@@ -856,21 +856,14 @@ export default function MobilePortalIndex({
                                 </div>
                             </div>
 
-                            <div className="space-y-2 p-3 rounded-lg border border-border/60 bg-muted/20">
-                                <Label className="font-semibold text-foreground">Ödeme Yöntemi *</Label>
-                                <select
-                                    value={bookingForm.data.paymentMethod}
-                                    onChange={(e) => bookingForm.setData('paymentMethod', e.target.value)}
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs"
-                                >
-                                    <option value="Banka">🏦 Banka Havalesi / EFT (Ödeme Onayı Beklenir)</option>
-                                    <option value="Cari Hesap">💼 Cari Hesap (Açık Hesap / Anlaşmalı Firmalar)</option>
-                                </select>
-                                <p className="text-[11px] text-muted-foreground">
-                                    {bookingForm.data.paymentMethod === 'Banka'
-                                        ? '⏳ Banka havalesi / EFT ile ödemelerde ödeme finans tarafından onaylanana kadar biniş kartı yazdırılamaz.'
-                                        : '✓ Cari hesap anlaşması bulunan kayıtlı müşterilerimiz içindir.'}
-                                </p>
+                            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                                <span className="text-base leading-none">⏳</span>
+                                <div>
+                                    <span className="font-semibold">Ödeme Onayı Bilgilendirmesi:</span>
+                                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                        Rezervasyonunuz doğrudan operasyon onay listesine düşecektir. Ödeme tipi ve onayı operasyon yetkililerimizce onaylandıktan sonra biniş kartınız hazır olacaktır.
+                                    </p>
+                                </div>
                             </div>
 
                             <DialogFooter className="pt-4 border-t border-border/60">

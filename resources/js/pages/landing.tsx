@@ -1017,14 +1017,14 @@ export default function Landing({
                             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                                 <div>
                                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                        PNR NUMARASI
+                                        ÖN REZERVASYON NO (PNR)
                                     </div>
                                     <div className="font-mono text-xl font-black text-sky-700">
                                         {searchResult.id}
                                     </div>
                                 </div>
-                                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold">
-                                    ✓ Tescilli Kayıt
+                                <Badge className={searchResult.paymentStatus === 'PAID' ? "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold" : "bg-amber-100 text-amber-800 border-amber-300 font-bold"}>
+                                    {searchResult.paymentStatus === 'PAID' ? '✓ Tescilli Bilet' : '📝 Ön Rezervasyon Kaydı'}
                                 </Badge>
                             </div>
 
@@ -1041,7 +1041,7 @@ export default function Landing({
                                     {searchResult.paymentStatus === 'PAID' ? (
                                         <span className="text-emerald-700 font-bold">✓ Ödendi</span>
                                     ) : (
-                                        <span className="text-amber-700 font-bold">⏳ Onay Bekleniyor ({searchResult.paymentMethod || 'Banka'})</span>
+                                        <span className="text-amber-700 font-bold">⏳ Onay Bekleniyor ({searchResult.paymentMethod || 'Belirlenmedi'})</span>
                                     )}
                                 </div>
                             </div>
@@ -1051,18 +1051,33 @@ export default function Landing({
 
                                 if (isPrintBlocked) {
                                     return (
-                                        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-3 border-t border-slate-200">
-                                            <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2.5 py-1.5 flex items-center gap-1.5 w-full sm:w-auto">
-                                                <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-                                                <span>Web rezervasyonlarında ödeme onayı verilene kadar biniş kartı yazdırılamaz.</span>
+                                        <div className="space-y-3 pt-3 border-t border-slate-200">
+                                            {/* Belirgin Ön Rezervasyon Uyarı Kutusu */}
+                                            <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-amber-950 space-y-2.5 shadow-xs">
+                                                <div className="flex items-center gap-2 font-extrabold text-sm text-amber-900">
+                                                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white text-xs font-black">!</span>
+                                                    DİKKAT: BU BİR ÖN REZERVASYONDUR
+                                                </div>
+                                                <p className="text-xs sm:text-sm leading-relaxed font-semibold text-slate-800">
+                                                    Bu bir ön rezervasyondur. Ödeme onayı ve evrak girişleri tamamlandıktan sonra ve operasyonel bir engel olmadığında rezervasyonunuz kesin olarak onaylanır.
+                                                </p>
+                                                <div className="rounded-lg bg-white p-2.5 border border-amber-300 flex items-start gap-2.5">
+                                                    <Mail className="h-4.5 w-4.5 text-emerald-600 shrink-0 mt-0.5" />
+                                                    <p className="text-xs font-medium text-slate-800 leading-snug">
+                                                        Rezervasyonunuz onaylandığında kayıtlı <strong className="text-emerald-700">{searchResult.contactMail || 'e-posta'}</strong> adresinize <span className="underline font-semibold">mail ile bildirim yapacağız</span> ve biniş kartı yazdırma izni aktifleşecektir.
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <button
-                                                disabled
-                                                className="inline-flex items-center gap-1.5 rounded-md bg-slate-200 text-slate-500 px-3 py-1.5 text-xs font-semibold cursor-not-allowed shrink-0 w-full sm:w-auto justify-center"
-                                                title="Ödeme onayı verilene kadar biniş kartı yazdırılamaz"
-                                            >
-                                                <Lock className="h-3.5 w-3.5 text-amber-600" /> Biniş Kartı Kilitli
-                                            </button>
+
+                                            <div className="flex justify-end">
+                                                <button
+                                                    disabled
+                                                    className="inline-flex items-center gap-1.5 rounded-md bg-slate-200 text-slate-500 px-3.5 py-2 text-xs font-semibold cursor-not-allowed shrink-0"
+                                                    title="Ödeme ve evrak onayı verilene kadar biniş kartı yazdırılamaz"
+                                                >
+                                                    <Lock className="h-3.5 w-3.5 text-amber-600" /> Biniş Kartı Kilitli (Ön Rezervasyon Onayı Bekleniyor)
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 }

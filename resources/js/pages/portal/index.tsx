@@ -390,10 +390,10 @@ export default function MobilePortalIndex({
                     <Card className="mx-auto w-full max-w-3xl border-border/80 bg-card/70 shadow-sm">
                         <CardHeader className="border-b border-border/50 pb-4">
                             <CardTitle className="text-xl font-bold text-foreground">
-                                Rezervasyon & PNR Sorgulama
+                                Ön Rezervasyon & PNR Sorgulama
                             </CardTitle>
                             <p className="text-xs text-muted-foreground">
-                                Rezervasyon kodu veya çekici plakası ile bilet detaylarınızı görüntüleyin
+                                Ön rezervasyon kodu veya çekici plakası ile bilet detaylarınızı görüntüleyin
                             </p>
                         </CardHeader>
                         <CardContent className="p-6 space-y-6">
@@ -414,28 +414,36 @@ export default function MobilePortalIndex({
                             </form>
 
                             {inquiryResult ? (
-                                <div className="rounded-xl border-2 border-sky-500/40 bg-sky-500/5 p-6 shadow-sm">
+                                <div className="rounded-xl border-2 border-sky-500/40 bg-sky-50/50 dark:bg-sky-500/5 p-6 shadow-sm">
                                     <div className="flex flex-wrap items-center justify-between border-b border-border/60 pb-3 mb-4 gap-2">
                                         <div>
                                             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                                Rezervasyon No (PNR)
+                                                Ön Rezervasyon No (PNR)
                                             </span>
-                                            <div className="font-mono text-2xl font-black text-sky-400">
+                                            <div className="font-mono text-2xl font-black text-sky-600 dark:text-sky-400">
                                                 {inquiryResult.id}
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap items-center gap-2">
                                             {inquiryResult.paymentStatus === 'PAID' ? (
-                                                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-bold px-3 py-1">
+                                                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-3 py-1">
                                                     <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Ödeme Onaylandı (Ödendi)
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-500 font-bold px-3 py-1">
+                                                <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-500 font-bold px-3 py-1">
                                                     <Clock className="mr-1 h-3.5 w-3.5" /> ⏳ Ödeme Onayı Bekleniyor
                                                 </Badge>
                                             )}
-                                            <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-bold px-3 py-1">
-                                                <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Tescilli Rezervasyon
+                                            <Badge variant="outline" className={inquiryResult.paymentStatus === 'PAID' ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-3 py-1" : "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-3 py-1"}>
+                                                {inquiryResult.paymentStatus === 'PAID' ? (
+                                                    <>
+                                                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Tescilli Rezervasyon
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className="mr-1">📝</span> Ön Rezervasyon Kaydı
+                                                    </>
+                                                )}
                                             </Badge>
                                         </div>
                                     </div>
@@ -451,7 +459,7 @@ export default function MobilePortalIndex({
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-muted-foreground">🚚 Çekici Plaka:</span>
-                                            <strong className="font-mono text-sky-400 font-bold">{inquiryResult.truckPlate}</strong>
+                                            <strong className="font-mono text-sky-600 dark:text-sky-400 font-bold">{inquiryResult.truckPlate}</strong>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-muted-foreground">👨‍✈️ Sürücü:</span>
@@ -471,19 +479,19 @@ export default function MobilePortalIndex({
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-muted-foreground">⚡ Elektrik / Frigo:</span>
-                                            <span className={inquiryResult.hasElectricity ? 'text-emerald-400 font-semibold' : ''}>
+                                            <span className={inquiryResult.hasElectricity ? 'text-emerald-500 font-semibold' : ''}>
                                                 {inquiryResult.hasElectricity ? 'Var (Elektrikli)' : 'Yok'}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-muted-foreground">💳 Ödeme Durumu:</span>
                                             {inquiryResult.paymentStatus === 'PAID' ? (
-                                                <span className="text-emerald-400 font-semibold inline-flex items-center gap-1">
+                                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold inline-flex items-center gap-1">
                                                     <CheckCircle2 className="h-3.5 w-3.5" /> Ödendi ({inquiryResult.paymentMethod || 'Cari Hesap'})
                                                 </span>
                                             ) : (
-                                                <span className="text-amber-500 font-semibold inline-flex items-center gap-1">
-                                                    <Clock className="h-3.5 w-3.5" /> Ödeme Onayı Bekleniyor ({inquiryResult.paymentMethod || 'Banka'})
+                                                <span className="text-amber-600 dark:text-amber-500 font-semibold inline-flex items-center gap-1">
+                                                    <Clock className="h-3.5 w-3.5" /> Ödeme Onayı Bekleniyor ({inquiryResult.paymentMethod || 'Belirlenmedi'})
                                                 </span>
                                             )}
                                         </div>
@@ -498,19 +506,34 @@ export default function MobilePortalIndex({
 
                                         if (isPrintBlocked) {
                                             return (
-                                                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border/60 pt-4">
-                                                    <div className="flex items-center gap-2 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3.5 py-2.5 w-full sm:w-auto">
-                                                        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-                                                        <span>Web üzerinden oluşturulan rezervasyonlarda <strong>finans / banka ödeme onayı</strong> verilene kadar biniş kartı oluşturulamaz ve yazdırılamaz.</span>
+                                                <div className="space-y-4 border-t border-border/60 pt-4">
+                                                    {/* Belirgin Ön Rezervasyon Deklarasyon Kutusu */}
+                                                    <div className="rounded-xl border-2 border-amber-500/50 bg-amber-500/10 p-4 text-amber-950 dark:text-amber-200 space-y-2.5 shadow-xs">
+                                                        <div className="flex items-center gap-2 font-extrabold text-sm text-amber-800 dark:text-amber-300">
+                                                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white text-xs font-black">!</span>
+                                                            DİKKAT: BU BİR ÖN REZERVASYONDUR
+                                                        </div>
+                                                        <p className="text-xs sm:text-sm leading-relaxed font-semibold">
+                                                            Bu bir ön rezervasyondur. Ödeme onayı ve evrak girişleri tamamlandıktan sonra ve operasyonel bir engel olmadığında rezervasyonunuz onaylanır.
+                                                        </p>
+                                                        <div className="rounded-lg bg-background/90 p-2.5 border border-amber-500/30 flex items-start gap-2.5">
+                                                            <Mail className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                                                            <p className="text-xs font-medium text-foreground leading-snug">
+                                                                Rezervasyonunuz onaylandığında kayıtlı <strong className="text-emerald-600 dark:text-emerald-400">{inquiryResult.contactMail || 'e-posta'}</strong> adresinize <span className="underline font-semibold">mail ile bildirim yapacağız</span> ve biniş kartınız yazdırılabilir hale gelecektir.
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <Button
-                                                        disabled
-                                                        variant="outline"
-                                                        className="opacity-60 cursor-not-allowed border-amber-500/30 bg-muted/40 text-muted-foreground shrink-0 w-full sm:w-auto font-medium"
-                                                        title="Ödeme onayı verilene kadar biniş kartı yazdırılamaz"
-                                                    >
-                                                        <Lock className="mr-2 h-4 w-4 text-amber-500" /> Biniş Kartı Kilitli (Ödeme Bekleniyor)
-                                                    </Button>
+
+                                                    <div className="flex justify-end">
+                                                        <Button
+                                                            disabled
+                                                            variant="outline"
+                                                            className="opacity-70 cursor-not-allowed border-amber-500/40 bg-muted/40 text-muted-foreground font-medium text-xs h-9"
+                                                            title="Ödeme ve evrak onayı tamamlanana kadar biniş kartı oluşturulamaz"
+                                                        >
+                                                            <Lock className="mr-2 h-4 w-4 text-amber-500" /> Biniş Kartı Kilitli (Ön Rezervasyon Onayı Bekleniyor)
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             );
                                         }

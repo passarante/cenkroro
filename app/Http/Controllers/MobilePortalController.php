@@ -136,6 +136,6 @@ class MobilePortalController extends Controller
         ]);
 
         return redirect()->route('portal.index', ['tab' => 'pnr', 'pnr' => $bookingId])
-            ->with('success', "🎉 Rezervasyonunuz başarıyla oluşturuldu! PNR Kodunuz: {$bookingId}");
+            ->with('success', "🎉 Ön rezervasyonunuz başarıyla alındı! PNR Kodunuz: {$bookingId}. Operasyon onayından sonra e-posta ile bilgilendirileceksiniz.");
     }
 }

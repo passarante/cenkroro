@@ -9,6 +9,7 @@ import {
     FileText,
     Globe,
     Lock,
+    Mail,
     Printer,
     Search,
     Ship,
@@ -50,7 +51,7 @@ interface MobilePortalProps {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Web Rezervasyon Portalı', href: '/portal' },
+    { title: 'Web Ön Rezervasyon Portalı', href: '/portal' },
 ];
 
 export default function MobilePortalIndex({
@@ -69,6 +70,7 @@ export default function MobilePortalIndex({
     const [currentTab, setCurrentTab] = useState<'book' | 'pnr' | 'schedule' | 'history'>(activeTab);
     const [pnrQuery, setPnrQuery] = useState(pnrSearch);
     const [step2Open, setStep2Open] = useState(false);
+    const [preBookingNoticeOpen, setPreBookingNoticeOpen] = useState(false);
 
     // Form for booking submission
     const [selectedShipperOption, setSelectedShipperOption] = useState<string>(
@@ -123,15 +125,28 @@ export default function MobilePortalIndex({
         setStep2Open(true);
     };
 
-    const handleFinalSubmit = (e: React.FormEvent) => {
+    const handleOpenPreBookingNotice = (e: React.FormEvent) => {
         e.preventDefault();
+        if (
+            !bookingForm.data.driverName.trim() ||
+            !bookingForm.data.driverPhone.trim() ||
+            !bookingForm.data.truckPlate.trim()
+        ) {
+            toast.error('Lütfen sürücü adı, telefon ve çekici plakası alanlarını eksiksiz doldurunuz.');
+            return;
+        }
+        setPreBookingNoticeOpen(true);
+    };
+
+    const handleConfirmPreBookingSubmit = () => {
         bookingForm.post('/portal/submit', {
             onSuccess: () => {
+                setPreBookingNoticeOpen(false);
                 setStep2Open(false);
-                toast.success('Rezervasyon başarıyla oluşturuldu!');
+                toast.success('🎉 Ön rezervasyon talebiniz başarıyla alındı! Detaylar e-posta adresinize iletilecektir.');
             },
             onError: () => {
-                toast.error('Rezervasyon gönderilirken hata oluştu. Lütfen bilgileri kontrol edin.');
+                toast.error('Ön rezervasyon gönderilirken hata oluştu. Lütfen bilgileri kontrol edin.');
             },
         });
     };
@@ -148,7 +163,7 @@ export default function MobilePortalIndex({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Web Rezervasyon Portalı - Cenk Ro-Ro" />
+            <Head title="Web Ön Rezervasyon Portalı - Cenk Ro-Ro" />
 
             <div className="flex flex-col gap-6 p-6">
                 {/* Header Card */}
@@ -159,10 +174,10 @@ export default function MobilePortalIndex({
                         </div>
                         <div>
                             <h2 className="text-lg font-bold tracking-tight text-foreground">
-                                Online Web Rezervasyon Sistemi
+                                Online Web Ön Rezervasyon Sistemi
                             </h2>
                             <p className="text-xs text-muted-foreground">
-                                Müşteri & Acente Self-Servis Ro-Ro Rezervasyon ve Bilet İşlemleri
+                                Müşteri & Acente Self-Servis Ro-Ro Ön Rezervasyon ve Bilet İşlemleri
                             </p>
                         </div>
                     </div>
@@ -175,7 +190,7 @@ export default function MobilePortalIndex({
                             onClick={() => setCurrentTab('book')}
                             className="font-medium"
                         >
-                            <FileText className="mr-1.5 h-4 w-4" /> Yeni Rezervasyon
+                            <FileText className="mr-1.5 h-4 w-4" /> Yeni Ön Rezervasyon
                         </Button>
                         <Button
                             variant={currentTab === 'pnr' ? 'default' : 'outline'}
@@ -183,7 +198,7 @@ export default function MobilePortalIndex({
                             onClick={() => setCurrentTab('pnr')}
                             className="font-medium"
                         >
-                            <Search className="mr-1.5 h-4 w-4" /> PNR / Bilet Sorgula
+                            <Search className="mr-1.5 h-4 w-4" /> PNR / Ön Rezervasyon Sorgula
                         </Button>
                         <Button
                             variant={currentTab === 'schedule' ? 'default' : 'outline'}
@@ -200,7 +215,7 @@ export default function MobilePortalIndex({
                                 onClick={() => setCurrentTab('history')}
                                 className="font-medium"
                             >
-                                <Truck className="mr-1.5 h-4 w-4" /> Geçmiş İşlemlerim
+                                <Truck className="mr-1.5 h-4 w-4" /> Geçmiş Ön Rezervasyonlarım
                                 {myBookings.length > 0 && (
                                     <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] bg-primary/20 text-foreground font-bold">
                                         {myBookings.length}
@@ -216,7 +231,7 @@ export default function MobilePortalIndex({
                     <Card className="mx-auto w-full max-w-4xl border-border/80 bg-card/70 shadow-sm">
                         <CardHeader className="border-b border-border/50 pb-4">
                             <CardTitle className="text-xl font-bold text-foreground">
-                                Rezervasyon Bilgileri
+                                Ön Rezervasyon Bilgileri
                             </CardTitle>
                             <p className="text-xs text-muted-foreground">
                                 Adım 1 / 2: Sefer ve yetkili iletişim bilgilerini giriniz
@@ -584,7 +599,7 @@ export default function MobilePortalIndex({
                                                     setCurrentTab('book');
                                                 }}
                                             >
-                                                Bu Sefere Rezervasyon Yap ➔
+                                                Bu Sefere Ön Rezervasyon Yap ➔
                                             </Button>
                                         </div>
                                     </div>
@@ -601,10 +616,10 @@ export default function MobilePortalIndex({
                             <div>
                                 <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
                                     <Truck className="h-5 w-5 text-primary" />
-                                    Geçmiş Rezervasyonlarım & Biniş Kayıtları
+                                    Geçmiş Ön Rezervasyonlarım & Biniş Kayıtları
                                 </CardTitle>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Hesabınıza ({user?.email}) ait tescilli tüm geçmiş rezervasyonlar ve güncel durumları
+                                    Hesabınıza ({user?.email}) ait tescilli tüm geçmiş ön rezervasyonlar ve güncel durumları
                                 </p>
                             </div>
                             <Button
@@ -613,19 +628,19 @@ export default function MobilePortalIndex({
                                 className="text-xs font-semibold self-start sm:self-auto"
                             >
                                 <FileText className="mr-1.5 h-3.5 w-3.5" />
-                                Yeni Rezervasyon Yap
+                                Yeni Ön Rezervasyon Yap
                             </Button>
                         </CardHeader>
                         <CardContent className="p-6">
                             {myBookings.length === 0 ? (
                                 <div className="text-center py-12 border border-dashed rounded-lg bg-muted/20">
                                     <Truck className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-                                    <h3 className="text-base font-semibold text-foreground">Henüz bir rezervasyon kaydınız bulunmuyor</h3>
+                                    <h3 className="text-base font-semibold text-foreground">Henüz bir ön rezervasyon kaydınız bulunmuyor</h3>
                                     <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1 mb-4">
-                                        Aktif seferlerimizden birini seçerek anında online rezervasyon oluşturabilirsiniz.
+                                        Aktif seferlerimizden birini seçerek anında online ön rezervasyon oluşturabilirsiniz.
                                     </p>
                                     <Button size="sm" onClick={() => setCurrentTab('book')}>
-                                        Hemen Rezervasyon Oluştur
+                                        Hemen Ön Rezervasyon Oluştur
                                     </Button>
                                 </div>
                             ) : (
@@ -746,11 +761,11 @@ export default function MobilePortalIndex({
                     <DialogContent className="max-w-2xl">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2 text-lg">
-                                <Truck className="h-5 w-5 text-emerald-400" /> Sürücü ve Araç Bilgileri (Adım 2 / 2)
+                                <Truck className="h-5 w-5 text-emerald-400" /> Sürücü ve Araç Bilgileri (Ön Rezervasyon Adım 2 / 2)
                             </DialogTitle>
                         </DialogHeader>
 
-                        <form onSubmit={handleFinalSubmit} className="space-y-4">
+                        <form onSubmit={handleOpenPreBookingNotice} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Sürücü Ad & Soyad *</Label>
@@ -859,9 +874,9 @@ export default function MobilePortalIndex({
                             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
                                 <span className="text-base leading-none">⏳</span>
                                 <div>
-                                    <span className="font-semibold">Ödeme Onayı Bilgilendirmesi:</span>
+                                    <span className="font-semibold">Ön Rezervasyon Bilgilendirmesi:</span>
                                     <p className="mt-0.5 text-[11px] text-muted-foreground">
-                                        Rezervasyonunuz doğrudan operasyon onay listesine düşecektir. Ödeme tipi ve onayı operasyon yetkililerimizce onaylandıktan sonra biniş kartınız hazır olacaktır.
+                                        Ön rezervasyon talebiniz doğrudan operasyon onay listesine düşecektir. Ödeme tipi ve evrak onayı tamamlandıktan sonra biniş kartınız hazır olacaktır.
                                     </p>
                                 </div>
                             </div>
@@ -879,10 +894,76 @@ export default function MobilePortalIndex({
                                     disabled={bookingForm.processing}
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                                 >
-                                    {bookingForm.processing ? 'Kaydediliyor...' : 'Rezervasyonu Onayla ve Tamamla'}
+                                    {bookingForm.processing ? 'İşleniyor...' : 'Ön Rezervasyonu Onayla ve Tamamla'}
                                 </Button>
                             </DialogFooter>
                         </form>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Ön Rezervasyon Bilgilendirme ve Onay Diyaloğu */}
+                <Dialog open={preBookingNoticeOpen} onOpenChange={setPreBookingNoticeOpen}>
+                    <DialogContent className="max-w-md md:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-base font-bold text-amber-700 dark:text-amber-400">
+                                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+                                Ön Rezervasyon Bilgilendirmesi & Onay
+                            </DialogTitle>
+                        </DialogHeader>
+
+                        <div className="space-y-4 pt-1">
+                            {/* Belirgin Deklarasyon Kutusu */}
+                            <div className="rounded-xl border-2 border-amber-500/50 bg-amber-500/10 p-4 text-amber-950 dark:text-amber-200 space-y-3 shadow-xs">
+                                <div className="flex items-center gap-2 font-extrabold text-sm text-amber-800 dark:text-amber-300">
+                                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-white text-xs font-black">!</span>
+                                    DİKKAT: BU BİR ÖN REZERVASYONDUR
+                                </div>
+                                <p className="text-xs md:text-sm leading-relaxed font-semibold">
+                                    Bu bir ön rezervasyondur. Ödeme onayı ve evrak girişleri tamamlandıktan sonra ve operasyonel bir engel olmadığında rezervasyonunuz onaylanır.
+                                </p>
+                                <div className="rounded-lg bg-background/90 p-3 border border-amber-500/30 flex items-start gap-2.5">
+                                    <Mail className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                                    <p className="text-xs font-medium text-foreground leading-snug">
+                                        Rezervasyonunuz onaylandığında tarafınıza <strong className="text-emerald-600 dark:text-emerald-400">{bookingForm.data.contactMail || 'kayıtlı e-posta'}</strong> adresiniz üzerinden <span className="underline font-semibold">mail ile bildirim yapacağız.</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Özet Bilgiler */}
+                            <div className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs space-y-2">
+                                <div className="flex justify-between items-center text-muted-foreground pb-1.5 border-b border-border/40">
+                                    <span>Taşıyıcı / Firma:</span>
+                                    <span className="font-semibold text-foreground">{bookingForm.data.shipper}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-muted-foreground pb-1.5 border-b border-border/40">
+                                    <span>Çekici Plakası:</span>
+                                    <span className="font-mono font-bold text-foreground">{bookingForm.data.truckPlate}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-muted-foreground">
+                                    <span>Sürücü / Telefon:</span>
+                                    <span className="font-medium text-foreground">{bookingForm.data.driverName} ({bookingForm.data.driverPhone})</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="pt-3 border-t border-border/60">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setPreBookingNoticeOpen(false)}
+                                disabled={bookingForm.processing}
+                            >
+                                Geri Dön / Düzenle
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={handleConfirmPreBookingSubmit}
+                                disabled={bookingForm.processing}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                            >
+                                {bookingForm.processing ? 'Gönderiliyor...' : 'Anladım, Ön Rezervasyonu Tamamla'}
+                            </Button>
+                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
             </div>

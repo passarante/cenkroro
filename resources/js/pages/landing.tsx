@@ -83,6 +83,7 @@ export default function Landing({
     // Modal states
     const [reservationOpen, setReservationOpen] = useState(false);
     const [subStep2Open, setSubStep2Open] = useState(false);
+    const [preBookingNoticeOpen, setPreBookingNoticeOpen] = useState(false);
     const [scheduleOpen, setScheduleOpen] = useState(false);
     const [tariffOpen, setTariffOpen] = useState(false);
     const [fleetOpen, setFleetOpen] = useState(false);
@@ -190,16 +191,29 @@ export default function Landing({
         setSubStep2Open(true);
     };
 
-    const handleFinalBookingSubmit = (e: React.FormEvent) => {
+    const handleOpenPreBookingNotice = (e: React.FormEvent) => {
         e.preventDefault();
+        if (
+            !bookingForm.data.driverName.trim() ||
+            !bookingForm.data.driverPhone.trim() ||
+            !bookingForm.data.truckPlate.trim()
+        ) {
+            toast.error('Lütfen sürücü adı, telefon ve çekici plakası alanlarını eksiksiz doldurunuz.');
+            return;
+        }
+        setPreBookingNoticeOpen(true);
+    };
+
+    const handleConfirmPreBookingSubmit = () => {
         bookingForm.post('/portal/submit', {
             onSuccess: () => {
+                setPreBookingNoticeOpen(false);
                 setSubStep2Open(false);
                 setReservationOpen(false);
-                toast.success('Rezervasyonunuz başarıyla kaydedildi!');
+                toast.success('🎉 Ön rezervasyonunuz başarıyla kaydedildi! Detaylar mail ile iletilecektir.');
             },
             onError: () => {
-                toast.error('Rezervasyon oluşturulurken bir hata oluştu.');
+                toast.error('Ön rezervasyon oluşturulurken bir hata oluştu.');
             },
         });
     };
@@ -588,11 +602,11 @@ export default function Landing({
                 <DialogContent className="max-w-2xl bg-white text-slate-900">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                            <Truck className="h-5 w-5 text-emerald-600" /> Sürücü ve Araç Bilgileri (Adım 2 / 2)
+                            <Truck className="h-5 w-5 text-emerald-600" /> Sürücü ve Araç Bilgileri (Ön Rezervasyon Adım 2 / 2)
                         </DialogTitle>
                     </DialogHeader>
 
-                    <form onSubmit={handleFinalBookingSubmit} className="space-y-4 pt-2">
+                    <form onSubmit={handleOpenPreBookingNotice} className="space-y-4 pt-2">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <Label className="text-xs font-bold text-slate-700">Sürücü Ad & Soyad *</Label>
@@ -705,9 +719,9 @@ export default function Landing({
                         <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 flex items-start gap-2.5">
                             <span className="text-base leading-none">⏳</span>
                             <div>
-                                <span className="font-semibold">Ödeme Onayı Bilgilendirmesi:</span>
+                                <span className="font-semibold">Ön Rezervasyon Bilgilendirmesi:</span>
                                 <p className="mt-0.5 text-[11px] text-slate-600">
-                                    Rezervasyonunuz doğrudan operasyon onay listesine düşecektir. Ödeme tipi ve onayı operasyon yetkililerimizce onaylandıktan sonra biniş kartınız hazır olacaktır.
+                                    Ön rezervasyon talebiniz doğrudan operasyon onay listesine düşecektir. Ödeme tipi ve evrak onayı tamamlandıktan sonra biniş kartınız hazır olacaktır.
                                 </p>
                             </div>
                         </div>
@@ -726,10 +740,76 @@ export default function Landing({
                                 disabled={bookingForm.processing}
                                 className="bg-[#2e7d32] hover:bg-[#256629] text-white font-bold"
                             >
-                                {bookingForm.processing ? 'Kaydediliyor...' : 'Kaydet ve Rezervasyonu Bitir'}
+                                {bookingForm.processing ? 'İşleniyor...' : 'Ön Rezervasyonu Onayla ve Bitir'}
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Ön Rezervasyon Bilgilendirme ve Onay Diyaloğu (Landing) */}
+            <Dialog open={preBookingNoticeOpen} onOpenChange={setPreBookingNoticeOpen}>
+                <DialogContent className="max-w-md md:max-w-lg bg-white text-slate-900">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base font-bold text-amber-800">
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-white text-xs font-black">!</span>
+                            Ön Rezervasyon Bilgilendirmesi & Onay
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 pt-1">
+                        {/* Belirgin Deklarasyon Kutusu */}
+                        <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-amber-950 space-y-3 shadow-xs">
+                            <div className="flex items-center gap-2 font-extrabold text-sm text-amber-900">
+                                DİKKAT: BU BİR ÖN REZERVASYONDUR
+                            </div>
+                            <p className="text-xs md:text-sm leading-relaxed font-semibold text-slate-800">
+                                Bu bir ön rezervasyondur. Ödeme onayı ve evrak girişleri tamamlandıktan sonra ve operasyonel bir engel olmadığında rezervasyonunuz kesin olarak onaylanır.
+                            </p>
+                            <div className="rounded-lg bg-white p-3 border border-amber-300 flex items-start gap-2.5">
+                                <Mail className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                                <p className="text-xs font-medium text-slate-800 leading-snug">
+                                    Rezervasyonunuz onaylandığında tarafınıza <strong className="text-emerald-700">{bookingForm.data.contactMail || 'kayıtlı e-posta'}</strong> adresiniz üzerinden <span className="underline font-semibold">mail ile bildirim yapacağız.</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Özet Bilgiler */}
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs space-y-2">
+                            <div className="flex justify-between items-center text-slate-600 pb-1.5 border-b border-slate-200">
+                                <span>Taşıyıcı / Firma:</span>
+                                <span className="font-semibold text-slate-900">{bookingForm.data.shipper}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-slate-600 pb-1.5 border-b border-slate-200">
+                                <span>Çekici Plakası:</span>
+                                <span className="font-mono font-bold text-slate-900">{bookingForm.data.truckPlate}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-slate-600">
+                                <span>Sürücü / Telefon:</span>
+                                <span className="font-medium text-slate-900">{bookingForm.data.driverName} ({bookingForm.data.driverPhone})</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="pt-3 border-t border-slate-200">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setPreBookingNoticeOpen(false)}
+                            disabled={bookingForm.processing}
+                            className="text-slate-700 border-slate-300"
+                        >
+                            Geri Dön / Düzenle
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleConfirmPreBookingSubmit}
+                            disabled={bookingForm.processing}
+                            className="bg-[#2e7d32] hover:bg-[#256629] text-white font-bold"
+                        >
+                            {bookingForm.processing ? 'Gönderiliyor...' : 'Anladım, Ön Rezervasyonu Tamamla'}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

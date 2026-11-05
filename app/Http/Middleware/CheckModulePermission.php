@@ -35,6 +35,11 @@ class CheckModulePermission
             return $next($request);
         }
 
+        // Biniş kartı yazdırma izni (Onaylanmış rezervasyonlar saha, acente veya operasyon personeli tarafından yazdırılabilir)
+        if ($request->routeIs('bookings.boarding_pass') || $request->is('bookings/boarding-pass/*')) {
+            return $next($request);
+        }
+
         // Saha kullanıcısı yalnızca portala erişebilir
         if ($user->isField() && $module !== 'portal') {
             return redirect()->route('portal.index')->with(

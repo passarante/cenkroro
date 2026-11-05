@@ -42,6 +42,9 @@ Route::prefix('voyages')->name('voyages.')->middleware('permission:voyages')->gr
     Route::post('/route/destroy/{id}', [VoyageController::class, 'destroyRoute'])->name('route.destroy');
 });
 
+// Biniş Kartı Yazdırma (Onaylanmış rezervasyonlar saha, acente veya operasyon tarafından yazdırılabilir)
+Route::get('/bookings/boarding-pass/{id}', [BookingController::class, 'boardingPass'])->name('bookings.boarding_pass');
+
 // 2. Rezervasyon & Biniş Yönetimi
 Route::prefix('bookings')->name('bookings.')->middleware('permission:bookings')->group(function () {
     Route::get('/', [BookingController::class, 'index'])->name('index');
@@ -55,7 +58,6 @@ Route::prefix('bookings')->name('bookings.')->middleware('permission:bookings')-
     Route::post('/verify-documents/{id}', [BookingController::class, 'verifyDocuments'])->name('verify_documents');
     Route::post('/risk-approval/{id}', [BookingController::class, 'riskApproval'])->name('risk_approval');
     Route::post('/failed-boarding/{id}', [BookingController::class, 'failedBoarding'])->name('failed_boarding');
-    Route::get('/boarding-pass/{id}', [BookingController::class, 'boardingPass'])->name('boarding_pass');
 });
 
 // 3. Stif Planı / Güverte Yerleşimi

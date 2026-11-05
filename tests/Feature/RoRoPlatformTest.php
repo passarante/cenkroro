@@ -2,6 +2,7 @@
 
 use App\Models\Booking;
 use App\Models\Forwarder;
+use App\Models\User;
 use App\Models\Vessel;
 use App\Models\Voyage;
 use Database\Seeders\RoRoDatabaseSeeder;
@@ -427,6 +428,34 @@ test('web booking boarding pass is blocked with 403 until payment is approved', 
     $allowedResponse = $this->get("/bookings/boarding-pass/{$booking->id}");
     $allowedResponse->assertOk();
     $allowedResponse->assertInertia(fn ($page) => $page
+        ->component('bookings/boarding-pass')
+        ->has('booking')
+    );
+});
+
+test('field portal user can view and print approved boarding pass without permission error', function () {
+    $fieldUser = User::factory()->create([
+        'role' => 'field',
+    ]);
+
+    $booking = Booking::create([
+        'id' => 'BK-TEST-FIELD-PRINT',
+        'voyageId' => 'VOY-452',
+        'shipper' => 'Saha Müşteri Lojistik',
+        'truckPlate' => '34 FIELD 01',
+        'category' => 'Komple TIR',
+        'lengthMeters' => 16.5,
+        'weightTon' => 34.0,
+        'paymentMethod' => 'Cari Hesap',
+        'paymentStatus' => 'PAID', // Approved / Paid
+        'boardingStatus' => 'WAITING_APPROVAL',
+        'status' => 'Ödeme Alındı / Onaylandı',
+        'bookingChannel' => 'Web',
+    ]);
+
+    $response = $this->actingAs($fieldUser)->get("/bookings/boarding-pass/{$booking->id}");
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
         ->component('bookings/boarding-pass')
         ->has('booking')
     );

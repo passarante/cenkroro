@@ -53,7 +53,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
             <DropdownMenuItem asChild>
                 <Link className="block w-full" method="post" href={route('logout')} as="button" onClick={cleanup}>
                     <LogOut className="mr-2" />
-                    Çıkış Yap
+                    Çıkış
                 </Link>
             </DropdownMenuItem>
         </>
